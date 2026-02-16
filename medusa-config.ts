@@ -52,6 +52,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/abandoned-cart",
     },
+    {
+      resolve: "./src/modules/salon-pro",
+    },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,

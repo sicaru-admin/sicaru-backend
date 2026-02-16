@@ -14,6 +14,7 @@ export const TEMPLATE_ORDER_DELIVERED = "order_delivered"
 export const TEMPLATE_CART_REMINDER_1 = "cart_reminder_1"
 export const TEMPLATE_CART_REMINDER_2 = "cart_reminder_2"
 export const TEMPLATE_CART_REMINDER_3 = "cart_reminder_3"
+export const TEMPLATE_SALON_PRO_RECEIVED = "salon_pro_received"
 
 export type TemplateParameter = {
   type: "text"

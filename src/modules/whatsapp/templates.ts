@@ -95,6 +95,20 @@
  *   {{1}} first_name
  *   {{2}} display_id
  *   {{3}} review_url
+ *
+ * ──────────────────────────────────────────────────────────────────────
+ *
+ * Template: salon_pro_received
+ * Category: UTILITY
+ * Body:
+ *   ¡Hola {{1}}! Hemos recibido tu solicitud para Sicarú PRO.
+ *   Salón: {{2}}
+ *   Revisaremos tu información y te contactaremos en máximo 48 horas.
+ *   ¡Gracias por tu interés!
+ *
+ * Parameters:
+ *   {{1}} owner_name
+ *   {{2}} salon_name
  */
 
 export {} // Make this a module
