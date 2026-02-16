@@ -31,6 +31,13 @@ module.exports = defineConfig({
         apiKey: process.env.MEILISEARCH_API_KEY || "",
       },
     },
+    {
+      resolve: "./src/modules/facturapi",
+      options: {
+        apiKey: process.env.FACTURAPI_API_KEY || "",
+        sandbox: process.env.FACTURAPI_SANDBOX === "true",
+      },
+    },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
