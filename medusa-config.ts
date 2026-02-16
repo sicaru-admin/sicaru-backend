@@ -24,6 +24,13 @@ module.exports = defineConfig({
         ],
       },
     },
+    {
+      resolve: "./src/modules/meilisearch",
+      options: {
+        host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
+        apiKey: process.env.MEILISEARCH_API_KEY || "",
+      },
+    },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
