@@ -38,6 +38,14 @@ module.exports = defineConfig({
         sandbox: process.env.FACTURAPI_SANDBOX === "true",
       },
     },
+    {
+      resolve: "./src/modules/whatsapp",
+      options: {
+        accessToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
+        phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+        verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || "",
+      },
+    },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
