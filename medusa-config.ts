@@ -46,6 +46,12 @@ module.exports = defineConfig({
         verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || "",
       },
     },
+    {
+      resolve: "./src/modules/loyalty",
+    },
+    {
+      resolve: "./src/modules/abandoned-cart",
+    },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
