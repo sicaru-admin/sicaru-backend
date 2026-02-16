@@ -48,7 +48,7 @@ export function isOfflinePayment(
   data?: Record<string, unknown>
 ): boolean {
   const method = data?.payment_method_id as string | undefined
-  return method === "oxxo" || method === "spei"
+  return method === "oxxo" || method === "spei" || method === "clabe"
 }
 
 /**

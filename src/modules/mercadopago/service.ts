@@ -26,6 +26,7 @@ import type {
   UpdatePaymentOutput,
   WebhookActionResult,
 } from "@medusajs/framework/types"
+import crypto from "crypto"
 import { MercadoPagoConfig, Payment, PaymentRefund } from "mercadopago"
 import type { MercadoPagoOptions, MercadoPagoPaymentData } from "./types"
 import {
@@ -86,7 +87,6 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
 
     const paymentBody: Record<string, unknown> = {
       transaction_amount: amountNumber,
-      currency_id: currency_code.toUpperCase(),
       description: (data?.description as string) || "Sicaru Payment",
       payer: {
         email:
@@ -109,8 +109,16 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       paymentBody.installments = (data?.installments as number) || 1
       // Cards use manual capture by default so admin can review
       paymentBody.capture = false
-    } else if (paymentMethodId === "oxxo" || paymentMethodId === "spei") {
-      paymentBody.payment_method_id = paymentMethodId
+    } else if (
+      paymentMethodId === "oxxo" ||
+      paymentMethodId === "spei" ||
+      paymentMethodId === "clabe" ||
+      paymentMethodId === "bancomer" ||
+      paymentMethodId === "banamex"
+    ) {
+      // Map "spei" convenience name to the actual MP payment method ID
+      paymentBody.payment_method_id =
+        paymentMethodId === "spei" ? "clabe" : paymentMethodId
       // Set expiration for offline payments
       paymentBody.date_of_expiration = getOxxoExpirationDate()
     }
@@ -121,8 +129,11 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
     }
 
     try {
+      const idempotencyKey =
+        (context?.idempotency_key as string) || crypto.randomUUID()
       const mpPayment = await this.payment_.create({
         body: paymentBody as any,
+        requestOptions: { idempotencyKey },
       })
 
       const responseData: MercadoPagoPaymentData = {
@@ -159,8 +170,12 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
         data: responseData as unknown as Record<string, unknown>,
       }
     } catch (error: any) {
+      const detail = error.cause
+        ? JSON.stringify(error.cause)
+        : JSON.stringify(error, Object.getOwnPropertyNames(error))
+      this.logger_.error(`MercadoPago initiatePayment error detail: ${detail}`)
       throw new Error(
-        `MercadoPago initiatePayment failed: ${error.message || error}`
+        `MercadoPago initiatePayment failed: ${detail}`
       )
     }
   }
