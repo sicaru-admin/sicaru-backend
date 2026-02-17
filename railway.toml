@@ -1,0 +1,14 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "sh -c 'npx medusa db:migrate && npx medusa start'"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+numReplicas = 1
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[service]
+internalPort = 9000

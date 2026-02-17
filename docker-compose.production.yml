@@ -1,0 +1,63 @@
+# Reference architecture for local production-like testing.
+# In production: PostgreSQL → Supabase, Redis → Upstash, MeiliSearch → Railway service.
+
+services:
+  medusa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://medusa:medusa@postgres:5432/medusa
+      - REDIS_URL=redis://redis:6379
+      - STORE_CORS=http://localhost:3000
+      - ADMIN_CORS=http://localhost:9000
+      - AUTH_CORS=http://localhost:9000,http://localhost:3000
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - COOKIE_SECRET=dev-cookie-secret-change-in-production
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY:-masterkey}
+      - MEDUSA_BACKEND_URL=http://localhost:9000
+      - STORE_URL=http://localhost:3000
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: medusa
+      POSTGRES_PASSWORD: medusa
+      POSTGRES_DB: medusa
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY:-masterkey}
+    volumes:
+      - meilisearch_data:/meili_data
+
+volumes:
+  postgres_data:
+  meilisearch_data:
