@@ -13,7 +13,7 @@
     "medusa"
   ],
   "scripts": {
-    "build": "tsc && medusa build",
+    "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "meilisearch:sync": "medusa exec ./src/scripts/sync-meilisearch.ts",
     "start": "medusa db:migrate && medusa start",
