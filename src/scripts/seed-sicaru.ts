@@ -304,7 +304,7 @@ export default async function seedSicaruData({ container }: ExecArgs) {
         ],
       },
     });
-    publishableApiKey = apiKeyResult;
+    publishableApiKey = apiKeyResult as any;
   }
 
   await linkSalesChannelsToApiKeyWorkflow(container).run({
