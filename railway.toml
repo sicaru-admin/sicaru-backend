@@ -1,12 +1,10 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm ci && npx medusa build"
+buildCommand = "npx medusa db:migrate && npx medusa build"
 
 [deploy]
-startCommand = "npx medusa db:migrate && npx medusa start"
+startCommand = "npx medusa start"
 healthcheckPath = "/health"
-healthcheckTimeout = 300
-numReplicas = 1
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
