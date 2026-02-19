@@ -25,7 +25,7 @@ class FacturapiService extends MedusaService({
 
     // Dynamic import to avoid ESM issues (same pattern as MeiliSearch)
     this.clientPromise = import("facturapi").then((mod) => {
-      const Facturapi = (mod as any).default || mod
+      const Facturapi = (mod as any).default?.default || (mod as any).default || mod
       return new Facturapi(options.apiKey)
     })
   }

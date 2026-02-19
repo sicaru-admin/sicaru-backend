@@ -107,5 +107,5 @@ export default async function loyaltyTierEvaluation(
 
 export const config = {
   name: "loyalty-tier-evaluation",
-  schedule: "0 3 1 */3 *", // First day of every quarter at 3 AM
+  schedule: "0 3 * * *", // Daily at 3 AM (quarterly schedule overflows setTimeout)
 }
