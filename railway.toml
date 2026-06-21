@@ -1,8 +1,9 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build"
 
 [deploy]
-startCommand = "npx medusa build && npx medusa db:migrate && npx medusa start"
+startCommand = "npm run start"
 healthcheckPath = "/health"
 healthcheckTimeout = 600
 restartPolicyType = "ON_FAILURE"
