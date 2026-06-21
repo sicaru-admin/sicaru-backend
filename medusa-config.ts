@@ -2,6 +2,21 @@ import { loadEnv, defineConfig } from '@medusajs/framework/utils'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
+const paymentProviders = process.env.MERCADOPAGO_ACCESS_TOKEN
+  ? [
+      {
+        resolve: "./src/modules/mercadopago",
+        id: "mercadopago",
+        options: {
+          accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+          publicKey: process.env.MERCADOPAGO_PUBLIC_KEY,
+          sandbox: process.env.MERCADOPAGO_SANDBOX === "true",
+          webhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET,
+        },
+      },
+    ]
+  : []
+
 module.exports = defineConfig({
   admin: {
     disable: process.env.DISABLE_ADMIN === "true",
@@ -11,18 +26,7 @@ module.exports = defineConfig({
     {
       resolve: "@medusajs/medusa/payment",
       options: {
-        providers: [
-          {
-            resolve: "./src/modules/mercadopago",
-            id: "mercadopago",
-            options: {
-              accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
-              publicKey: process.env.MERCADOPAGO_PUBLIC_KEY,
-              sandbox: process.env.MERCADOPAGO_SANDBOX === "true",
-              webhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET,
-            },
-          },
-        ],
+        providers: paymentProviders,
       },
     },
     {
