@@ -9,4 +9,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: DISABLE_ADMIN
-        value: "true"
+        value: "false"
