@@ -3,7 +3,7 @@ services:
     name: sicaru-backend
     runtime: node
     plan: starter
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
