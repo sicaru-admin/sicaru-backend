@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm run build"
+buildCommand = "DISABLE_ADMIN=true npm run build"
 
 [deploy]
-startCommand = "find .medusa -maxdepth 5 -type f | sort | sed -n '1,200p' && HOST=0.0.0.0 PORT=9000 npm run start"
+startCommand = "DISABLE_ADMIN=true HOST=0.0.0.0 PORT=9000 npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 

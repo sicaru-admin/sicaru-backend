@@ -17,9 +17,13 @@ const paymentProviders = process.env.MERCADOPAGO_ACCESS_TOKEN
     ]
   : []
 
+const disableAdmin =
+  process.env.DISABLE_ADMIN === "true" ||
+  (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN !== "true")
+
 module.exports = defineConfig({
   admin: {
-    disable: process.env.DISABLE_ADMIN === "true",
+    disable: disableAdmin,
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
   },
   modules: [
