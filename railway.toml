@@ -3,7 +3,7 @@ builder = "nixpacks"
 buildCommand = "npm run build"
 
 [deploy]
-startCommand = "HOST=0.0.0.0 PORT=9000 npx medusa db:migrate && cd .medusa/server && HOST=0.0.0.0 PORT=9000 node index.js"
+startCommand = "find .medusa -maxdepth 5 -type f | sort | sed -n '1,200p' && HOST=0.0.0.0 PORT=9000 npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
