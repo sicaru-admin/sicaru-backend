@@ -401,7 +401,7 @@ export default async function seedSicaruData({ container }: ExecArgs) {
     `Categories: ${allCategories.map((c) => c.name).join(", ")}`
   );
 
-  // ── 10. PRODUCTS (8 items) ────────────────────────────────────────
+  // ── 10. PRODUCTS ──────────────────────────────────────────────────
   logger.info("Creating products...");
   const existingProducts = await productModuleService.listProducts({});
   const existingHandles = new Set(existingProducts.map((p) => p.handle));
@@ -443,6 +443,33 @@ export default async function seedSicaruData({ container }: ExecArgs) {
           options: { "Tamaño": "90ml" },
           manage_inventory: true,
           prices: [{ currency_code: "mxn", amount: 85 }],
+        },
+      ],
+      sales_channels: [{ id: tiendaOnline.id }],
+    },
+    {
+      title: "Voglia All in One Keratin 250ml",
+      handle: "voglia-all-in-one-keratin-250ml",
+      description:
+        "Tratamiento leave-in sin enjuague con keratina. Ayuda a proteger el cabello del calor de plancha, secadora o tenaza; facilita el peinado y el desenredo; aporta brillo, hidratación y suavidad; controla la apariencia del frizz y deja el cabello más manejable. Ideal para cabello seco, maltratado o procesado. Según el empaque, libre de sulfatos y siliconas.",
+      status: ProductStatus.PUBLISHED,
+      thumbnail:
+        "https://sicaru-six.vercel.app/images/products/voglia-all-in-one-keratin-250ml.png",
+      images: [
+        {
+          url: "https://sicaru-six.vercel.app/images/products/voglia-all-in-one-keratin-250ml.png",
+        },
+      ],
+      shipping_profile_id: shippingProfile.id,
+      category_ids: [catByName("Tratamientos y Mascarillas")],
+      options: [{ title: "Tamaño", values: ["250ml"] }],
+      variants: [
+        {
+          title: "250ml",
+          sku: "VOGLIA-ALL-IN-ONE-250ML",
+          options: { "Tamaño": "250ml" },
+          manage_inventory: true,
+          prices: [{ currency_code: "mxn", amount: 146 }],
         },
       ],
       sales_channels: [{ id: tiendaOnline.id }],
@@ -628,7 +655,7 @@ export default async function seedSicaruData({ container }: ExecArgs) {
   logger.info("   Store: Distribuidora Sicarú");
   logger.info("   Region: México (MXN)");
   logger.info("   Tax: 16% IVA");
-  logger.info("   Products: 8");
+  logger.info(`   Products configured: ${allProductDefs.length}`);
   logger.info("   Categories: 6");
   logger.info("   Shipping: Envío Cadereyta Mismo Día ($49 MXN)");
   logger.info("   Sales Channel: Tienda Online");
