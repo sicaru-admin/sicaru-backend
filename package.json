@@ -2,7 +2,7 @@
   "name": "sicaru-backend",
   "version": "0.0.1",
   "description": "A starter for Medusa projects.",
-  "author": "Medusa (https://www.medusajs.com)",
+  "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
   "keywords": [
     "sqlite",
