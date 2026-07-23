@@ -67,6 +67,8 @@ const UNIT_COLUMNS = [
   "notes",
 ];
 
+type CatalogRow = Record<string, string>;
+
 function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -168,8 +170,8 @@ function validateCatalog(filePath) {
     return { rows: [], errors, warnings };
   }
 
-  const rows = records.map((record, recordIndex) => {
-    const row = {};
+  const rows: CatalogRow[] = records.map((record, recordIndex) => {
+    const row: CatalogRow = {};
     REQUIRED_COLUMNS.forEach((column) => {
       const sourceIndex = header.indexOf(column);
       row[column] = record[sourceIndex]?.trim() ?? "";
