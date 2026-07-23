@@ -411,4 +411,4 @@ async function run(container) {
   else throw new Error(`Modo no reconocido: ${args.mode}`);
 }
 
-module.exports = run;
+export default run;
