@@ -30,6 +30,7 @@ function parseArgs(argv) {
   const args = { mode: "dry-run", file: "voglia-catalog-master-final.csv", confirm: "" };
   for (let i = 2; i < argv.length; i += 1) {
     if (argv[i] === "--dry-run") args.mode = "dry-run";
+    else if (argv[i] === "--preflight-live") args.mode = "preflight-live";
     else if (argv[i] === "--apply") args.mode = "apply";
     else if (argv[i] === "--file") args.file = argv[++i];
     else if (argv[i] === "--confirm") args.confirm = argv[++i];
@@ -71,6 +72,7 @@ function parseCsv(text) {
 }
 
 function readCatalog(filePath) {
+  if (!fs.existsSync(filePath)) throw new Error(`No existe el archivo CSV: ${filePath}`);
   const parsed = parseCsv(fs.readFileSync(filePath, "utf8"));
   const header = parsed[0] ? [...parsed[0]] : [];
   if (header.length) header[0] = header[0]?.replace(/^\uFEFF/, "") ?? "";
@@ -216,6 +218,118 @@ function printDryRun(file, header, rows, validation, plan) {
   console.log("\nResultado: dry-run completado. No se escribio ningun dato.");
 }
 
+
+function uniqueValues(rows, column) {
+  return [...new Set(rows.map((row) => row.values[column]).filter(Boolean))];
+}
+
+function classifyMatch(value, matches, expectedProductIds) {
+  if (!matches.length) return { value, status: "no encontrado", matches: [] };
+  const expected = matches.every((match) => expectedProductIds.includes(match.product_id));
+  return {
+    value,
+    status: expected ? "coincidencia esperada" : "conflicto",
+    matches: matches.map((match) => ({
+      product_id: match.product_id,
+      product_title: match.product_title,
+      variant_id: match.id,
+      sku: match.sku,
+      barcode: match.barcode,
+    })),
+  };
+}
+
+function printJson(title, value) {
+  console.log(`\n${title}`);
+  console.log(JSON.stringify(value, null, 2));
+}
+
+async function preflightLive(container, rows) {
+  if (!container) throw new Error("--preflight-live debe ejecutarse con medusa exec para recibir el contenedor de Medusa.");
+  let query;
+  try {
+    query = container.resolve("query");
+  } catch (error) {
+    throw new Error(`No se pudo cargar el servicio de lectura query: ${error.message}`);
+  }
+
+  const expectedProductIds = [EXPECTED.tintProductId, EXPECTED.allInOneProductId];
+  const csvSkus = uniqueValues(rows, "sku");
+  const csvBarcodes = uniqueValues(rows, "barcode");
+  const csvHandles = [EXPECTED.tintHandle, EXPECTED.allInOneHandle];
+
+  const { data: products } = await query.graph({
+    entity: "product",
+    fields: [
+      "id", "title", "handle", "status", "thumbnail", "images.*", "options.*",
+      "sales_channels.*", "shipping_profile.*", "variants.*", "variants.options.*",
+      "variants.price_set.*", "variants.prices.*", "variants.inventory_items.*",
+    ],
+    filters: { id: expectedProductIds },
+  });
+
+  if (products.length !== 2) throw new Error("Preflight abortado: no se encontraron exactamente los dos productos objetivo.");
+
+  const { data: regions } = await query.graph({
+    entity: "region",
+    fields: ["id", "name", "currency_code"],
+    filters: { currency_code: "mxn" },
+  });
+  const { data: stockLocations } = await query.graph({ entity: "stock_location", fields: ["id", "name"] });
+  const { data: salesChannels } = await query.graph({ entity: "sales_channel", fields: ["id", "name"] });
+  const { data: shippingProfiles } = await query.graph({ entity: "shipping_profile", fields: ["id", "name", "type"] });
+  const { data: skuMatches } = await query.graph({
+    entity: "product_variant",
+    fields: ["id", "sku", "barcode", "product_id", "product.title"],
+    filters: { sku: csvSkus },
+  });
+  const { data: barcodeMatches } = await query.graph({
+    entity: "product_variant",
+    fields: ["id", "sku", "barcode", "product_id", "product.title"],
+    filters: { barcode: csvBarcodes },
+  });
+  const { data: handleMatches } = await query.graph({
+    entity: "product",
+    fields: ["id", "title", "handle"],
+    filters: { handle: csvHandles },
+  });
+
+  const targetInventoryItemIds = products
+    .flatMap((product) => product.variants ?? [])
+    .flatMap((variant) => variant.inventory_items ?? [])
+    .map((item) => item.inventory_item_id ?? item.id)
+    .filter(Boolean);
+
+  const { data: inventoryLevels } = targetInventoryItemIds.length
+    ? await query.graph({
+        entity: "inventory_level",
+        fields: ["id", "inventory_item_id", "location_id", "stocked_quantity", "reserved_quantity"],
+        filters: { inventory_item_id: targetInventoryItemIds },
+      })
+    : { data: [] };
+
+  printJson("Productos objetivo", products);
+  printJson("Regiones MXN", regions);
+  printJson("Sales channels", salesChannels);
+  printJson("Stock locations", stockLocations);
+  printJson("Shipping profiles", shippingProfiles);
+  printJson("Inventory levels actuales", inventoryLevels);
+  printJson("Coincidencias de handles", csvHandles.map((handle) => ({
+    handle,
+    status: handleMatches.some((match) => match.handle === handle) ? "coincidencia esperada" : "no encontrado",
+    matches: handleMatches.filter((match) => match.handle === handle),
+  })));
+  printJson("Coincidencias de SKUs", csvSkus.map((sku) => classifyMatch(sku, skuMatches.filter((match) => match.sku === sku), expectedProductIds)));
+  printJson("Coincidencias de barcodes", csvBarcodes.map((barcode) => classifyMatch(barcode, barcodeMatches.filter((match) => match.barcode === barcode), expectedProductIds)));
+
+  const tint = products.find((product) => product.id === EXPECTED.tintProductId);
+  console.log("\nEstructura de tinte");
+  console.log(`Opcion Tono existente: ${Boolean((tint.options ?? []).some((option) => option.title === "Tono"))}`);
+  console.log(`Variante reutilizable conservando ID: ${Boolean((tint.variants ?? []).some((variant) => variant.id === EXPECTED.tintVariantId))}`);
+  console.log("Resultado esperado tras apply futuro: 23 variantes en el producto de tintes, sin productos nuevos.");
+  console.log("\nPreflight live finalizado. No se invoco ningun workflow ni servicio de escritura.");
+}
+
 async function assertApplySafety(container, args) {
   if (!container) throw new Error("--apply debe ejecutarse con medusa exec para recibir el contenedor de Medusa.");
   if (args.confirm !== APPLY_CONFIRMATION) throw new Error(`--apply requiere --confirm ${APPLY_CONFIRMATION}.`);
@@ -287,7 +401,9 @@ async function run(container) {
     return;
   }
   if (args.mode === "dry-run") printDryRun(args.file, header, rows, validation, plan);
-  else await applyCatalog(container, args, plan);
+  else if (args.mode === "preflight-live") await preflightLive(container, rows);
+  else if (args.mode === "apply") await applyCatalog(container, args, plan);
+  else throw new Error(`Modo no reconocido: ${args.mode}`);
 }
 
 if (require.main === module) run().catch((error) => {
