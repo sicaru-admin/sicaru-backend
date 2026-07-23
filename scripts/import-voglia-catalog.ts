@@ -411,9 +411,4 @@ async function run(container) {
   else throw new Error(`Modo no reconocido: ${args.mode}`);
 }
 
-if (require.main === module) run().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
-
 module.exports = run;
