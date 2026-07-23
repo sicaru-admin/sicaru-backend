@@ -151,6 +151,8 @@ function validateCatalog(filePath) {
     return { rows: [], errors, warnings };
   }
 
+  header[0] = header[0]?.replace(/^\uFEFF/, "") ?? "";
+
   const missingColumns = REQUIRED_COLUMNS.filter((column) => !header.includes(column));
   const extraColumns = header.filter((column) => !REQUIRED_COLUMNS.includes(column));
 
