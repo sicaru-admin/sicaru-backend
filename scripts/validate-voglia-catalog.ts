@@ -69,9 +69,14 @@ const UNIT_COLUMNS = [
 
 type CatalogRow = Record<string, string>;
 
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
+type ValidationMessage = {
+  row?: number;
+  message: string;
+};
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
   let field = "";
   let inQuotes = false;
 
@@ -145,12 +150,12 @@ function validateCatalog(filePath) {
   const csv = readFileSync(filePath, "utf8");
   const parsedRows = parseCsv(csv);
   const [header, ...records] = parsedRows;
-  const errors = [];
-  const warnings = [];
+  const errors: ValidationMessage[] = [];
+  const warnings: ValidationMessage[] = [];
 
   if (!header) {
     errors.push({ message: "El CSV está vacío." });
-    return { rows: [], errors, warnings };
+    return { rows: [] as CatalogRow[], errors, warnings };
   }
 
   header[0] = header[0]?.replace(/^\uFEFF/, "") ?? "";
@@ -167,7 +172,7 @@ function validateCatalog(filePath) {
   }
 
   if (missingColumns.length > 0) {
-    return { rows: [], errors, warnings };
+    return { rows: [] as CatalogRow[], errors, warnings };
   }
 
   const rows: CatalogRow[] = records.map((record, recordIndex) => {
