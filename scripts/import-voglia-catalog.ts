@@ -31,16 +31,40 @@ type ValidationMessage = {
   message: string;
 };
 
-function parseArgs(argv) {
-  const args = { mode: "dry-run", file: "voglia-catalog-master-final.csv", confirm: "" };
-  for (let i = 2; i < argv.length; i += 1) {
-    if (argv[i] === "--dry-run") args.mode = "dry-run";
-    else if (argv[i] === "--preflight-live") args.mode = "preflight-live";
-    else if (argv[i] === "--apply") args.mode = "apply";
-    else if (argv[i] === "--file") args.file = argv[++i];
-    else if (argv[i] === "--confirm") args.confirm = argv[++i];
-    else throw new Error(`Argumento no reconocido: ${argv[i]}`);
+function parseArgs(argv: string[]) {
+  const args = {
+    mode: "dry-run",
+    file: "voglia-catalog-master-final.csv",
+    confirm: "",
+  };
+
+  const separatorIndex = argv.indexOf("--");
+  const input = separatorIndex >= 0
+    ? argv.slice(separatorIndex + 1)
+    : argv.filter((value) => value.startsWith("--"));
+
+  for (let i = 0; i < input.length; i += 1) {
+    const value = input[i];
+
+    if (value === "--dry-run") {
+      args.mode = "dry-run";
+    } else if (value === "--preflight-live") {
+      args.mode = "preflight-live";
+    } else if (value === "--apply") {
+      args.mode = "apply";
+    } else if (value === "--file") {
+      const file = input[++i];
+      if (!file) throw new Error("--file requiere una ruta.");
+      args.file = file;
+    } else if (value === "--confirm") {
+      const confirmation = input[++i];
+      if (!confirmation) throw new Error("--confirm requiere un valor.");
+      args.confirm = confirmation;
+    } else {
+      throw new Error(`Argumento no reconocido: ${value}`);
+    }
   }
+
   return args;
 }
 
