@@ -26,6 +26,11 @@ const EXPECTED = {
 
 const APPLY_CONFIRMATION = "APPLY_VOGLIA_CATALOG";
 
+type ValidationMessage = {
+  row?: number;
+  message: string;
+};
+
 function parseArgs(argv) {
   const args = { mode: "dry-run", file: "voglia-catalog-master-final.csv", confirm: "" };
   for (let i = 2; i < argv.length; i += 1) {
@@ -103,26 +108,26 @@ function duplicates(rows, column) {
 }
 
 function validate(header, rows) {
-  const errors = [];
-  const warnings = [];
+  const errors: ValidationMessage[] = [];
+  const warnings: ValidationMessage[] = [];
   const missing = REQUIRED_COLUMNS.filter((column) => !header.includes(column));
   const extra = header.filter((column) => !REQUIRED_COLUMNS.includes(column));
-  if (missing.length) errors.push(`Faltan columnas: ${missing.join(", ")}`);
-  if (extra.length) warnings.push(`Columnas extra ignoradas: ${extra.join(", ")}`);
-  if (header.length !== REQUIRED_COLUMNS.length) errors.push(`El CSV debe tener ${REQUIRED_COLUMNS.length} columnas; tiene ${header.length}.`);
-  if (rows.length !== 24) errors.push(`El CSV debe tener 24 filas; tiene ${rows.length}.`);
+  if (missing.length) errors.push({ message: `Faltan columnas: ${missing.join(", ")}` });
+  if (extra.length) warnings.push({ message: `Columnas extra ignoradas: ${extra.join(", ")}` });
+  if (header.length !== REQUIRED_COLUMNS.length) errors.push({ message: `El CSV debe tener ${REQUIRED_COLUMNS.length} columnas; tiene ${header.length}.` });
+  if (rows.length !== 24) errors.push({ message: `El CSV debe tener 24 filas; tiene ${rows.length}.` });
 
   for (const row of rows) {
     const item = row.values;
-    if (item.review_status !== "APPROVED") errors.push(`Fila ${row.rowNumber}: review_status no es APPROVED.`);
-    if (!["UPDATE_EXISTING", "ADD_VARIANT_TO_EXISTING"].includes(item.action)) errors.push(`Fila ${row.rowNumber}: action invalida.`);
-    if (![EXPECTED.tintProductId, EXPECTED.allInOneProductId].includes(item.existing_product_id)) errors.push(`Fila ${row.rowNumber}: Product ID fuera de alcance.`);
-    if (!item.sku) errors.push(`Fila ${row.rowNumber}: falta SKU.`);
-    if (!item.barcode) errors.push(`Fila ${row.rowNumber}: falta barcode.`);
-    if (Number.isNaN(toNumber(item.price_mxn))) errors.push(`Fila ${row.rowNumber}: precio invalido.`);
-    if (!Number.isInteger(toNumber(item.stock))) errors.push(`Fila ${row.rowNumber}: stock invalido.`);
-    if (!["true", "false"].includes(item.manage_inventory)) errors.push(`Fila ${row.rowNumber}: manage_inventory invalido.`);
-    if (!["true", "false"].includes(item.allow_backorder)) errors.push(`Fila ${row.rowNumber}: allow_backorder invalido.`);
+    if (item.review_status !== "APPROVED") errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: review_status no es APPROVED.` });
+    if (!["UPDATE_EXISTING", "ADD_VARIANT_TO_EXISTING"].includes(item.action)) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: action invalida.` });
+    if (![EXPECTED.tintProductId, EXPECTED.allInOneProductId].includes(item.existing_product_id)) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: Product ID fuera de alcance.` });
+    if (!item.sku) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: falta SKU.` });
+    if (!item.barcode) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: falta barcode.` });
+    if (Number.isNaN(toNumber(item.price_mxn))) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: precio invalido.` });
+    if (!Number.isInteger(toNumber(item.stock))) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: stock invalido.` });
+    if (!["true", "false"].includes(item.manage_inventory)) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: manage_inventory invalido.` });
+    if (!["true", "false"].includes(item.allow_backorder)) errors.push({ row: row.rowNumber, message: `Fila ${row.rowNumber}: allow_backorder invalido.` });
   }
 
   const tintRows = rows.filter((row) => row.values.existing_product_id === EXPECTED.tintProductId);
@@ -132,26 +137,26 @@ function validate(header, rows) {
   const tintUpdate = tintUpdates[0]?.values;
   const allInOne = allRows[0]?.values;
 
-  if (tintRows.length !== 23) errors.push(`Tintes debe tener 23 filas; tiene ${tintRows.length}.`);
-  if (tintUpdates.length !== 1) errors.push(`Tintes debe tener 1 UPDATE_EXISTING; tiene ${tintUpdates.length}.`);
-  if (tintCreates.length !== 22) errors.push(`Tintes debe tener 22 ADD_VARIANT_TO_EXISTING; tiene ${tintCreates.length}.`);
-  if (allRows.length !== 1) errors.push(`All in One debe tener 1 fila; tiene ${allRows.length}.`);
-  if (tintUpdate?.existing_variant_id !== EXPECTED.tintVariantId) errors.push("Variant ID de tinte no coincide con el confirmado.");
-  if (tintUpdate?.handle !== EXPECTED.tintHandle) errors.push("Handle de tinte no coincide.");
-  if (tintUpdate?.sku !== "VOGLIA-TINTE-1-90ML") errors.push("SKU nuevo de la variante reutilizada no coincide.");
-  if (tintUpdate?.price_mxn !== "97") errors.push("Precio de tinte debe ser 97 MXN.");
-  if (tintUpdate?.stock !== "10") errors.push("Stock de tinte debe ser 10.");
-  if (allInOne?.action !== "UPDATE_EXISTING") errors.push("All in One debe ser UPDATE_EXISTING.");
-  if (allInOne?.existing_variant_id !== EXPECTED.allInOneVariantId) errors.push("Variant ID de All in One no coincide.");
-  if (allInOne?.handle !== EXPECTED.allInOneHandle) errors.push("Handle de All in One no coincide.");
-  if (allInOne?.sku !== EXPECTED.allInOneSku) errors.push("SKU de All in One no debe cambiar.");
-  if (allInOne?.price_mxn !== "146") errors.push("Precio de All in One debe conservar 146 MXN.");
-  if (allInOne?.stock !== "5") errors.push("Stock de All in One debe ser 5.");
+  if (tintRows.length !== 23) errors.push({ message: `Tintes debe tener 23 filas; tiene ${tintRows.length}.` });
+  if (tintUpdates.length !== 1) errors.push({ message: `Tintes debe tener 1 UPDATE_EXISTING; tiene ${tintUpdates.length}.` });
+  if (tintCreates.length !== 22) errors.push({ message: `Tintes debe tener 22 ADD_VARIANT_TO_EXISTING; tiene ${tintCreates.length}.` });
+  if (allRows.length !== 1) errors.push({ message: `All in One debe tener 1 fila; tiene ${allRows.length}.` });
+  if (tintUpdate?.existing_variant_id !== EXPECTED.tintVariantId) errors.push({ message: "Variant ID de tinte no coincide con el confirmado." });
+  if (tintUpdate?.handle !== EXPECTED.tintHandle) errors.push({ message: "Handle de tinte no coincide." });
+  if (tintUpdate?.sku !== "VOGLIA-TINTE-1-90ML") errors.push({ message: "SKU nuevo de la variante reutilizada no coincide." });
+  if (tintUpdate?.price_mxn !== "97") errors.push({ message: "Precio de tinte debe ser 97 MXN." });
+  if (tintUpdate?.stock !== "10") errors.push({ message: "Stock de tinte debe ser 10." });
+  if (allInOne?.action !== "UPDATE_EXISTING") errors.push({ message: "All in One debe ser UPDATE_EXISTING." });
+  if (allInOne?.existing_variant_id !== EXPECTED.allInOneVariantId) errors.push({ message: "Variant ID de All in One no coincide." });
+  if (allInOne?.handle !== EXPECTED.allInOneHandle) errors.push({ message: "Handle de All in One no coincide." });
+  if (allInOne?.sku !== EXPECTED.allInOneSku) errors.push({ message: "SKU de All in One no debe cambiar." });
+  if (allInOne?.price_mxn !== "146") errors.push({ message: "Precio de All in One debe conservar 146 MXN." });
+  if (allInOne?.stock !== "5") errors.push({ message: "Stock de All in One debe ser 5." });
 
   const duplicateSkus = duplicates(rows, "sku");
   const duplicateBarcodes = duplicates(rows, "barcode");
-  for (const duplicate of duplicateSkus) errors.push(`SKU duplicado ${duplicate.value} en filas ${duplicate.rowNumbers.join(", ")}.`);
-  for (const duplicate of duplicateBarcodes) errors.push(`Barcode duplicado ${duplicate.value} en filas ${duplicate.rowNumbers.join(", ")}.`);
+  for (const duplicate of duplicateSkus) errors.push({ message: `SKU duplicado ${duplicate.value} en filas ${duplicate.rowNumbers.join(", ")}.` });
+  for (const duplicate of duplicateBarcodes) errors.push({ message: `Barcode duplicado ${duplicate.value} en filas ${duplicate.rowNumbers.join(", ")}.` });
   return { errors, warnings, duplicateSkus, duplicateBarcodes };
 }
 
@@ -396,7 +401,7 @@ async function run(container) {
   const plan = buildPlan(rows);
   if (validation.errors.length) {
     console.error("Errores de validacion:");
-    validation.errors.forEach((error) => console.error(`- ${error}`));
+    validation.errors.forEach((error) => console.error(`- ${error.message}`));
     process.exitCode = 1;
     return;
   }
