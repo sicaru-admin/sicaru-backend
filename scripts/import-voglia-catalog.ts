@@ -36,9 +36,18 @@ type ValidationMessage = {
 function parseArgs(input: string[]) {
   const args = {
     mode: "dry-run",
-    file: "voglia-catalog-master-final.csv",
+    file: "./data/voglia-catalog-master-final.csv",
     confirm: "",
   };
+
+  if (["dry-run", "preflight-live", "apply"].includes(input[0])) {
+    args.mode = input[0];
+    if (input[1]) args.file = input[1];
+    if (args.mode === "apply" && input[2]) args.confirm = input[2];
+    const maxArgs = args.mode === "apply" ? 3 : 2;
+    if (input.length > maxArgs) throw new Error(`Argumento no reconocido: ${input[maxArgs]}`);
+    return args;
+  }
 
   for (let i = 0; i < input.length; i += 1) {
     const value = input[i];
