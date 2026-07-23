@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import type { ExecArgs } from "@medusajs/framework/types";
+
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -31,17 +33,12 @@ type ValidationMessage = {
   message: string;
 };
 
-function parseArgs(argv: string[]) {
+function parseArgs(input: string[]) {
   const args = {
     mode: "dry-run",
     file: "voglia-catalog-master-final.csv",
     confirm: "",
   };
-
-  const separatorIndex = argv.indexOf("--");
-  const input = separatorIndex >= 0
-    ? argv.slice(separatorIndex + 1)
-    : argv.filter((value) => value.startsWith("--"));
 
   for (let i = 0; i < input.length; i += 1) {
     const value = input[i];
@@ -418,8 +415,8 @@ async function applyCatalog(container, args, plan) {
   if (updates.length) await updateInventoryLevelsWorkflow(container).run({ input: { inventory_levels: updates } });
 }
 
-async function run(container) {
-  const args = parseArgs(process.argv);
+async function run({ container, args: cliArgs }: ExecArgs) {
+  const args = parseArgs(cliArgs ?? []);
   const { header, rows } = readCatalog(args.file);
   const validation = validate(header, rows);
   const plan = buildPlan(rows);
