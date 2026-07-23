@@ -40,8 +40,8 @@ function parseArgs(argv) {
 }
 
 function parseCsv(text) {
-  const rows = [];
-  let row = [];
+  const rows: string[][] = [];
+  let row: string[] = [];
   let cell = "";
   let quoted = false;
 
@@ -372,8 +372,8 @@ async function applyCatalog(container, args, plan) {
   const stockLocation = stockLocations[0];
   const targetSkus = [...plan.updates, ...plan.creates].map((variant) => variant.sku);
   const { data: variants } = await query.graph({ entity: "product_variant", fields: ["id", "sku", "inventory_items.*"], filters: { sku: targetSkus } });
-  const creates = [];
-  const updates = [];
+  const creates: { location_id: string; stocked_quantity: number; inventory_item_id: string }[] = [];
+  const updates: { id: string; stocked_quantity: number }[] = [];
 
   for (const variant of [...plan.updates, ...plan.creates]) {
     const current = variants.find((item) => item.sku === variant.sku);
