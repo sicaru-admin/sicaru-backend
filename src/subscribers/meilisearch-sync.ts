@@ -49,6 +49,10 @@ export default async function meiliSearchSyncHandler({
   event,
   container,
 }: SubscriberArgs<{ id: string }>) {
+  if (process.env.DISABLE_MEILISEARCH_SYNC === "true") {
+    return;
+  }
+
   const meiliSearch: MeiliSearchService = container.resolve(MEILISEARCH_MODULE);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
