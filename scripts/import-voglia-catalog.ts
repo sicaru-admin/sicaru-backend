@@ -396,23 +396,37 @@ async function applyCatalog(container, args, plan) {
     await updateProductsWorkflow(container).run({ input: { selector: { id: EXPECTED.tintProductId }, update: { options: [{ title: "Tono", values: plan.option.values }] } } });
   }
 
-  await updateProductVariantsWorkflow(container).run({ input: { product_variants: plan.updates.map((variant) => {
-    const payload = { id: variant.variant_id, product_id: variant.product_id, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] };
-    if (variant.variant_id === EXPECTED.allInOneVariantId) return payload;
-    return { ...payload, title: variant.title, options: variant.options };
-  }) } });
+  const targetSkus = [...plan.updates, ...plan.creates].map((variant) => variant.sku);
+  const { data: existingVariantsBeforeCreate } = await query.graph({
+    entity: "product_variant",
+    fields: ["id", "sku", "inventory_items.*"],
+    filters: { sku: targetSkus },
+  });
+  const existingVariantBySku = new Map(existingVariantsBeforeCreate.map((variant) => [variant.sku, variant]));
+  const existingCreates = plan.creates
+    .filter((variant) => existingVariantBySku.has(variant.sku))
+    .map((variant) => ({ ...variant, variant_id: existingVariantBySku.get(variant.sku).id }));
+  const missingCreates = plan.creates.filter((variant) => !existingVariantBySku.has(variant.sku));
+  const variantUpdates = [...plan.updates, ...existingCreates];
 
-  if (plan.creates.length) {
-    await createProductVariantsWorkflow(container).run({ input: { product_variants: plan.creates.map((variant) => ({ product_id: variant.product_id, title: variant.title, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, options: variant.options, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] })) } });
+  if (variantUpdates.length) {
+    await updateProductVariantsWorkflow(container).run({ input: { product_variants: variantUpdates.map((variant) => {
+      const payload = { id: variant.variant_id, product_id: variant.product_id, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] };
+      if (variant.variant_id === EXPECTED.allInOneVariantId) return payload;
+      return { ...payload, title: variant.title, options: variant.options };
+    }) } });
+  }
+
+  if (missingCreates.length) {
+    await createProductVariantsWorkflow(container).run({ input: { product_variants: missingCreates.map((variant) => ({ product_id: variant.product_id, title: variant.title, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, options: variant.options, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] })) } });
   }
 
   const { data: stockLocations } = await query.graph({ entity: "stock_location", fields: ["id", "name"] });
   if (stockLocations.length !== 1) throw new Error("Apply abortado: no se pudo identificar una sola stock location activa.");
   const stockLocation = stockLocations[0];
-  const targetSkus = [...plan.updates, ...plan.creates].map((variant) => variant.sku);
   const { data: variants } = await query.graph({ entity: "product_variant", fields: ["id", "sku", "inventory_items.*"], filters: { sku: targetSkus } });
   const creates: { location_id: string; stocked_quantity: number; inventory_item_id: string }[] = [];
-  const updates: { id: string; stocked_quantity: number }[] = [];
+  const updates: { id: string; inventory_item_id: string; location_id: string; stocked_quantity: number }[] = [];
 
   for (const variant of [...plan.updates, ...plan.creates]) {
     const current = variants.find((item) => item.sku === variant.sku);
@@ -420,12 +434,13 @@ async function applyCatalog(container, args, plan) {
     const inventoryItemId = inventoryItem?.inventory_item_id ?? inventoryItem?.id;
     if (!inventoryItemId) throw new Error(`Apply abortado: no se encontro inventory item para ${variant.sku}.`);
     const { data: levels } = await query.graph({ entity: "inventory_level", fields: ["id", "inventory_item_id", "location_id", "stocked_quantity"], filters: { inventory_item_id: inventoryItemId, location_id: stockLocation.id } });
-    if (levels.length) updates.push({ id: levels[0].id, stocked_quantity: variant.stock });
+    if (levels.length) updates.push({ id: levels[0].id, inventory_item_id: inventoryItemId, location_id: stockLocation.id, stocked_quantity: variant.stock });
     else creates.push({ location_id: stockLocation.id, stocked_quantity: variant.stock, inventory_item_id: inventoryItemId });
   }
 
   if (creates.length) await createInventoryLevelsWorkflow(container).run({ input: { inventory_levels: creates } });
-  if (updates.length) await updateInventoryLevelsWorkflow(container).run({ input: { inventory_levels: updates } });
+  if (updates.length) await updateInventoryLevelsWorkflow(container).run({ input: { updates } });
+  console.log("Meilisearch sync omitido por el importador; ejecuta npm run meilisearch:sync por separado cuando el servicio de staging este disponible.");
 }
 
 async function run({ container, args: cliArgs }: ExecArgs) {
