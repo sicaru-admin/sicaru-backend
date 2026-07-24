@@ -396,7 +396,11 @@ async function applyCatalog(container, args, plan) {
     await updateProductsWorkflow(container).run({ input: { selector: { id: EXPECTED.tintProductId }, update: { options: [{ title: "Tono", values: plan.option.values }] } } });
   }
 
-  await updateProductVariantsWorkflow(container).run({ input: { product_variants: plan.updates.map((variant) => ({ id: variant.variant_id, product_id: variant.product_id, title: variant.title, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, options: variant.options, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] })) } });
+  await updateProductVariantsWorkflow(container).run({ input: { product_variants: plan.updates.map((variant) => {
+    const payload = { id: variant.variant_id, product_id: variant.product_id, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] };
+    if (variant.variant_id === EXPECTED.allInOneVariantId) return payload;
+    return { ...payload, title: variant.title, options: variant.options };
+  }) } });
 
   if (plan.creates.length) {
     await createProductVariantsWorkflow(container).run({ input: { product_variants: plan.creates.map((variant) => ({ product_id: variant.product_id, title: variant.title, sku: variant.sku, barcode: variant.barcode, ean: variant.ean, upc: variant.upc, manage_inventory: variant.manage_inventory, allow_backorder: variant.allow_backorder, options: variant.options, prices: [{ currency_code: "mxn", amount: variant.price_mxn }] })) } });
