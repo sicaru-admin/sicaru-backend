@@ -403,9 +403,11 @@ async function applyCatalog(container, args, plan) {
     filters: { sku: targetSkus },
   });
   const existingVariantBySku = new Map(existingVariantsBeforeCreate.map((variant) => [variant.sku, variant]));
-  const existingCreates = plan.creates
-    .filter((variant) => existingVariantBySku.has(variant.sku))
-    .map((variant) => ({ ...variant, variant_id: existingVariantBySku.get(variant.sku).id }));
+  const existingCreates = plan.creates.flatMap((variant) => {
+    const existingVariant = existingVariantBySku.get(variant.sku);
+    if (!existingVariant) return [];
+    return [{ ...variant, variant_id: existingVariant.id }];
+  });
   const missingCreates = plan.creates.filter((variant) => !existingVariantBySku.has(variant.sku));
   const variantUpdates = [...plan.updates, ...existingCreates];
 
