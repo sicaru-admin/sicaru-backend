@@ -33,6 +33,15 @@ type ValidationMessage = {
   message: string;
 };
 
+type ExistingVariantRecord = {
+  id: string;
+  sku: string;
+  inventory_items?: Array<{
+    id?: string;
+    inventory_item_id?: string;
+  }>;
+};
+
 function parseArgs(input: string[]) {
   const args = {
     mode: "dry-run",
@@ -402,7 +411,7 @@ async function applyCatalog(container, args, plan) {
     fields: ["id", "sku", "inventory_items.*"],
     filters: { sku: targetSkus },
   });
-  const existingVariantBySku = new Map(existingVariantsBeforeCreate.map((variant) => [variant.sku, variant]));
+  const existingVariantBySku = new Map<string, ExistingVariantRecord>(existingVariantsBeforeCreate.map((variant) => [variant.sku, variant as ExistingVariantRecord]));
   const existingCreates = plan.creates.flatMap((variant) => {
     const existingVariant = existingVariantBySku.get(variant.sku);
     if (!existingVariant) return [];
