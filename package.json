@@ -16,6 +16,7 @@
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "seed:sicaru": "medusa exec ./src/scripts/seed-sicaru.ts",
+    "seed:preview-payments": "medusa exec ./src/scripts/seed-preview-payments.ts",
     "meilisearch:sync": "medusa exec ./src/scripts/sync-meilisearch.ts",
     "start": "medusa db:migrate && medusa start --host 0.0.0.0 --port ${PORT:-9000}",
     "start:production": "medusa db:migrate && cd .medusa/server && npm install --omit=dev --no-audit --no-fund && npm run start",
