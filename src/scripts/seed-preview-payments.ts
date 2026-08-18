@@ -139,8 +139,12 @@ export default async function seedPreviewPayments(args: ExecArgs) {
     entity: "inventory_item",
     fields: ["id"],
   });
+  const { data: productsWithVariants } = await query.graph({
+    entity: "product",
+    fields: ["id", "variants.id"],
+  });
 
-  const variantCount = products.reduce(
+  const variantCount = productsWithVariants.reduce(
     (total, product: any) => total + (product.variants?.length || 0),
     0
   );
