@@ -77,6 +77,52 @@ export default async function seedPreviewPayments(args: ExecArgs) {
 
   await seedSicaruData(args);
 
+  const { data: mexicoRegions } = await query.graph({
+    entity: "region",
+    fields: ["id", "name", "payment_providers.id"],
+    filters: { name: "México" },
+  });
+
+  if (!mexicoRegions.length) {
+    throw new Error("Required region not found: México.");
+  }
+
+  const mexicoRegion = mexicoRegions[0];
+
+  const { data: paymentProviders } = await query.graph({
+    entity: "payment_provider",
+    fields: ["id", "is_enabled"],
+  });
+
+  const mercadoPagoProvider = paymentProviders.find((provider: any) => {
+    const id = String(provider.id || "").toLowerCase();
+    return id.includes("mercadopago") || id.includes("mercado_pago");
+  });
+
+  if (!mercadoPagoProvider) {
+    throw new Error("Required Mercado Pago payment provider not found.");
+  }
+
+  const hasMercadoPagoProvider = (mexicoRegion.payment_providers || []).some(
+    (provider: any) => provider.id === mercadoPagoProvider.id
+  );
+
+  if (!hasMercadoPagoProvider) {
+    try {
+      await link.create({
+        [Modules.REGION]: { region_id: mexicoRegion.id },
+        [Modules.PAYMENT]: {
+          payment_provider_id: mercadoPagoProvider.id,
+        },
+      });
+    } catch (error: any) {
+      const message = String(error?.message || error).toLowerCase();
+      if (!message.includes("already") && !message.includes("duplicate")) {
+        throw error;
+      }
+    }
+  }
+
   const defaultChannels = await salesChannelModuleService.listSalesChannels({
     name: DEFAULT_SALES_CHANNEL,
   });
