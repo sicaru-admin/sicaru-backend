@@ -103,6 +103,26 @@ describe("MercadoPago utils", () => {
         })
       ).toBe(PaymentSessionStatus.ERROR)
     })
+
+    it("marks approved captured card payments as captured", () => {
+      expect(
+        resolveMPPaymentSessionStatus("approved", {
+          payment_method_id: "visa",
+          payment_type_id: "credit_card",
+          captured: true,
+        })
+      ).toBe(PaymentSessionStatus.CAPTURED)
+    })
+
+    it("keeps approved non-captured card payments authorized", () => {
+      expect(
+        resolveMPPaymentSessionStatus("approved", {
+          payment_method_id: "visa",
+          payment_type_id: "credit_card",
+          captured: false,
+        })
+      ).toBe(PaymentSessionStatus.AUTHORIZED)
+    })
   })
 
   describe("isOxxoPayment", () => {

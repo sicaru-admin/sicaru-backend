@@ -42,6 +42,10 @@ export function resolveMPPaymentSessionStatus(
   mpStatus: MercadoPagoStatus | string | undefined,
   data?: Record<string, unknown>
 ): PaymentSessionStatus {
+  if (mpStatus === "approved" && data?.captured === true) {
+    return PaymentSessionStatus.CAPTURED
+  }
+
   if (
     isOfflinePayment(data) &&
     (mpStatus === "pending" || mpStatus === "in_process")

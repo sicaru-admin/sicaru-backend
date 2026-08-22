@@ -34,6 +34,8 @@ export type MercadoPagoPaymentData = {
   transaction_amount?: number
   /** Currency code */
   currency_id?: string
+  /** Whether Mercado Pago reports the payment as captured */
+  captured?: boolean
   /** Medusa session ID stored in MP metadata */
   session_id?: string
 }

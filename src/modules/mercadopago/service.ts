@@ -110,8 +110,9 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       if (data?.issuer_id) {
         paymentBody.issuer_id = data.issuer_id as string
       }
-      // Cards use manual capture by default so admin can review
-      paymentBody.capture = false
+      // Card payments should be captured immediately for normal storefront
+      // checkout. Offline methods keep their pending voucher flow below.
+      paymentBody.capture = true
     } else if (
       paymentMethodId === "oxxo" ||
       paymentMethodId === "spei" ||
@@ -147,6 +148,7 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
         status_detail: mpPayment.status_detail,
         transaction_amount: mpPayment.transaction_amount,
         currency_id: mpPayment.currency_id,
+        captured: mpPayment.captured,
         session_id: sessionId,
       }
 
@@ -201,6 +203,12 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       const data = {
         ...(input.data || {}),
         mp_status: mpPayment.status,
+        status_detail: mpPayment.status_detail,
+        payment_method_id: mpPayment.payment_method_id,
+        payment_type_id: mpPayment.payment_type_id,
+        transaction_amount: mpPayment.transaction_amount,
+        currency_id: mpPayment.currency_id,
+        captured: mpPayment.captured,
       }
       const status = resolveMPPaymentSessionStatus(mpPayment.status, data)
 
@@ -230,6 +238,26 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
     }
 
     try {
+      if (input.data?.captured === true) {
+        return { data: input.data }
+      }
+
+      const current = await this.payment_.get({ id: String(mpPaymentId) })
+      if (current.captured === true) {
+        return {
+          data: {
+            ...(input.data || {}),
+            mp_status: current.status,
+            status_detail: current.status_detail,
+            payment_method_id: current.payment_method_id,
+            payment_type_id: current.payment_type_id,
+            transaction_amount: current.transaction_amount,
+            currency_id: current.currency_id,
+            captured: true,
+          },
+        }
+      }
+
       const captured = await this.payment_.capture({
         id: String(mpPaymentId),
       })
@@ -238,7 +266,12 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
         data: {
           ...(input.data || {}),
           mp_status: captured.status,
-          captured: true,
+          status_detail: captured.status_detail,
+          payment_method_id: captured.payment_method_id,
+          payment_type_id: captured.payment_type_id,
+          transaction_amount: captured.transaction_amount,
+          currency_id: captured.currency_id,
+          captured: captured.captured ?? true,
         },
       }
     } catch (error: any) {
@@ -419,10 +452,12 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       switch (mpPayment.status) {
         case "approved":
           // For offline payments (OXXO/SPEI), the payment is captured
-          // immediately when the customer pays. For cards, it's authorized.
+          // immediately when the customer pays. Card payments are captured
+          // during Payment.create, so approved webhooks are successful too.
           if (
             mpPayment.payment_type_id === "ticket" ||
-            mpPayment.payment_type_id === "bank_transfer"
+            mpPayment.payment_type_id === "bank_transfer" ||
+            mpPayment.captured === true
           ) {
             return {
               action: PaymentActions.SUCCESSFUL,
