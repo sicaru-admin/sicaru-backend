@@ -33,6 +33,26 @@ export function mapMPStatusToMedusa(
 }
 
 /**
+ * Resolve the technical Medusa session status while preserving the real
+ * Mercado Pago financial status in session data. Offline payments such as
+ * OXXO/SPEI are pending until the customer pays, but Medusa needs the payment
+ * session to be authorized so it can create an order with the voucher.
+ */
+export function resolveMPPaymentSessionStatus(
+  mpStatus: MercadoPagoStatus | string | undefined,
+  data?: Record<string, unknown>
+): PaymentSessionStatus {
+  if (
+    isOfflinePayment(data) &&
+    (mpStatus === "pending" || mpStatus === "in_process")
+  ) {
+    return PaymentSessionStatus.AUTHORIZED
+  }
+
+  return mapMPStatusToMedusa(mpStatus || "pending")
+}
+
+/**
  * Check if the payment method is OXXO.
  */
 export function isOxxoPayment(
