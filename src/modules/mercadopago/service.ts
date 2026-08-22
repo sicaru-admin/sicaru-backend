@@ -107,6 +107,9 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       paymentBody.token = data.token
       paymentBody.payment_method_id = paymentMethodId
       paymentBody.installments = (data?.installments as number) || 1
+      if (data?.issuer_id) {
+        paymentBody.issuer_id = data.issuer_id as string
+      }
       // Cards use manual capture by default so admin can review
       paymentBody.capture = false
     } else if (
@@ -141,6 +144,7 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
         payment_method_id: mpPayment.payment_method_id,
         payment_type_id: mpPayment.payment_type_id,
         mp_status: mpPayment.status,
+        status_detail: mpPayment.status_detail,
         transaction_amount: mpPayment.transaction_amount,
         currency_id: mpPayment.currency_id,
         session_id: sessionId,
