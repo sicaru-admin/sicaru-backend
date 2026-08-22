@@ -1,6 +1,7 @@
 import { PaymentSessionStatus } from "@medusajs/framework/utils"
 import {
   mapMPStatusToMedusa,
+  resolveMPPaymentSessionStatus,
   isOxxoPayment,
   isOfflinePayment,
   validateOxxoAmount,
@@ -67,6 +68,40 @@ describe("MercadoPago utils", () => {
       expect(mapMPStatusToMedusa("unknown_status")).toBe(
         PaymentSessionStatus.PENDING
       )
+    })
+  })
+
+  describe("resolveMPPaymentSessionStatus", () => {
+    it("keeps pending card payments pending", () => {
+      expect(
+        resolveMPPaymentSessionStatus("pending", {
+          payment_method_id: "visa",
+        })
+      ).toBe(PaymentSessionStatus.PENDING)
+    })
+
+    it("authorizes pending OXXO sessions technically for order creation", () => {
+      expect(
+        resolveMPPaymentSessionStatus("pending", {
+          payment_method_id: "oxxo",
+        })
+      ).toBe(PaymentSessionStatus.AUTHORIZED)
+    })
+
+    it("authorizes pending SPEI sessions technically for order creation", () => {
+      expect(
+        resolveMPPaymentSessionStatus("pending", {
+          payment_method_id: "spei",
+        })
+      ).toBe(PaymentSessionStatus.AUTHORIZED)
+    })
+
+    it("keeps rejected offline payments as errors", () => {
+      expect(
+        resolveMPPaymentSessionStatus("rejected", {
+          payment_method_id: "oxxo",
+        })
+      ).toBe(PaymentSessionStatus.ERROR)
     })
   })
 

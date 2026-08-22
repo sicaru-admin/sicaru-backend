@@ -30,7 +30,7 @@ import crypto from "crypto"
 import { MercadoPagoConfig, Payment, PaymentRefund } from "mercadopago"
 import type { MercadoPagoOptions, MercadoPagoPaymentData } from "./types"
 import {
-  mapMPStatusToMedusa,
+  resolveMPPaymentSessionStatus,
   isOxxoPayment,
   isOfflinePayment,
   validateOxxoAmount,
@@ -166,7 +166,10 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
 
       return {
         id: String(mpPayment.id),
-        status: mapMPStatusToMedusa(mpPayment.status || "pending"),
+        status: resolveMPPaymentSessionStatus(
+          mpPayment.status,
+          responseData as unknown as Record<string, unknown>
+        ),
         data: responseData as unknown as Record<string, unknown>,
       }
     } catch (error: any) {
@@ -191,14 +194,15 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
 
     try {
       const mpPayment = await this.payment_.get({ id: String(mpPaymentId) })
-      const status = mapMPStatusToMedusa(mpPayment.status || "pending")
+      const data = {
+        ...(input.data || {}),
+        mp_status: mpPayment.status,
+      }
+      const status = resolveMPPaymentSessionStatus(mpPayment.status, data)
 
       return {
         status,
-        data: {
-          ...(input.data || {}),
-          mp_status: mpPayment.status,
-        },
+        data,
       }
     } catch (error: any) {
       throw new Error(
@@ -351,7 +355,9 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
 
     try {
       const mpPayment = await this.payment_.get({ id: String(mpPaymentId) })
-      return { status: mapMPStatusToMedusa(mpPayment.status || "pending") }
+      return {
+        status: resolveMPPaymentSessionStatus(mpPayment.status, input.data),
+      }
     } catch (error: any) {
       throw new Error(
         `MercadoPago getPaymentStatus failed: ${error.message || error}`
@@ -368,7 +374,10 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
     return {
       data: input.data,
       status: (input.data?.mp_status
-        ? mapMPStatusToMedusa(input.data.mp_status as string)
+        ? resolveMPPaymentSessionStatus(
+            input.data.mp_status as string,
+            input.data
+          )
         : undefined),
     }
   }
