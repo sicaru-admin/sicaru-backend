@@ -1,4 +1,5 @@
 import { PaymentSessionStatus } from "@medusajs/framework/utils"
+import crypto from "crypto"
 import {
   mapMPStatusToMedusa,
   resolveMPPaymentSessionStatus,
@@ -6,6 +7,9 @@ import {
   isOfflinePayment,
   validateOxxoAmount,
   getOxxoExpirationDate,
+  buildMercadoPagoSignatureManifest,
+  parseMercadoPagoSignature,
+  validateMercadoPagoWebhookSignature,
 } from "../utils"
 
 describe("MercadoPago utils", () => {
@@ -201,6 +205,76 @@ describe("MercadoPago utils", () => {
       const result = getOxxoExpirationDate()
       const parsed = new Date(result)
       expect(parsed.toISOString()).toBe(result)
+    })
+  })
+
+  describe("Mercado Pago webhook signatures", () => {
+    const secret = "webhook-secret"
+    const dataId = "123ABC"
+    const requestId = "req_123"
+    const ts = "1704908010"
+
+    it("builds the official signature manifest", () => {
+      expect(
+        buildMercadoPagoSignatureManifest({
+          dataId,
+          requestId,
+          timestamp: ts,
+        })
+      ).toBe("id:123abc;request-id:req_123;ts:1704908010;")
+    })
+
+    it("parses x-signature header parts", () => {
+      expect(parseMercadoPagoSignature(`ts=${ts},v1=abc123`)).toEqual({
+        ts,
+        v1: "abc123",
+      })
+    })
+
+    it("validates a correct x-signature", () => {
+      const manifest = buildMercadoPagoSignatureManifest({
+        dataId,
+        requestId,
+        timestamp: ts,
+      })
+      const v1 = crypto
+        .createHmac("sha256", secret)
+        .update(manifest)
+        .digest("hex")
+
+      expect(
+        validateMercadoPagoWebhookSignature({
+          secret,
+          dataId,
+          headers: {
+            "x-signature": `ts=${ts},v1=${v1}`,
+            "x-request-id": requestId,
+          },
+        })
+      ).toBe(true)
+    })
+
+    it("rejects an incorrect x-signature", () => {
+      expect(
+        validateMercadoPagoWebhookSignature({
+          secret,
+          dataId,
+          headers: {
+            "x-signature": `ts=${ts},v1=bad`,
+            "x-request-id": requestId,
+          },
+        })
+      ).toBe(false)
+    })
+
+    it("rejects missing signature data", () => {
+      expect(
+        validateMercadoPagoWebhookSignature({
+          secret,
+          dataId,
+          headers: {},
+        })
+      ).toBe(false)
     })
   })
 })

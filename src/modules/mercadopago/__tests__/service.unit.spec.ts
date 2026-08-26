@@ -1,4 +1,5 @@
-import { PaymentSessionStatus } from "@medusajs/framework/utils"
+import crypto from "crypto"
+import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
 import MercadoPagoProviderService from "../service"
 
 const createMock = jest.fn()
@@ -22,11 +23,42 @@ const logger = {
   error: jest.fn(),
 }
 
-function createProvider() {
-  return new MercadoPagoProviderService(logger, {
+const WEBHOOK_SECRET = "webhook-secret"
+
+function createProvider(options: Record<string, unknown> = {}) {
+  return new MercadoPagoProviderService({ logger }, {
     accessToken: "TEST-token",
     sandbox: true,
+    ...options,
   })
+}
+
+function signWebhook(paymentId: string, requestId = "req_123", ts = "1704908010") {
+  const manifest = `id:${paymentId.toLowerCase()};request-id:${requestId};ts:${ts};`
+  const v1 = crypto
+    .createHmac("sha256", WEBHOOK_SECRET)
+    .update(manifest)
+    .digest("hex")
+
+  return {
+    "x-signature": `ts=${ts},v1=${v1}`,
+    "x-request-id": requestId,
+  }
+}
+
+function webhookPayload(
+  paymentId: string,
+  headers: Record<string, unknown> = signWebhook(paymentId)
+) {
+  return {
+    data: {
+      action: "payment.updated",
+      type: "payment",
+      data: { id: paymentId },
+    },
+    rawData: JSON.stringify({ data: { id: paymentId } }),
+    headers,
+  }
 }
 
 describe("MercadoPago provider", () => {
@@ -65,6 +97,11 @@ describe("MercadoPago provider", () => {
           token: "card-token",
           payment_method_id: "visa",
           capture: true,
+          external_reference: "payses_test",
+          metadata: expect.objectContaining({
+            session_id: "payses_test",
+            medusa_payment_session_id: "payses_test",
+          }),
         }),
       })
     )
@@ -245,5 +282,231 @@ describe("MercadoPago provider", () => {
         voucher_url: "https://sandbox.mercadopago.test/spei",
       })
     )
+  })
+
+  it("accepts a valid Mercado Pago webhook signature", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 127,
+      payment_method_id: "visa",
+      payment_type_id: "credit_card",
+      status: "approved",
+      status_detail: "accredited",
+      transaction_amount: 98.6,
+      captured: true,
+      metadata: { session_id: "payses_test" },
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("127") as any)
+
+    expect(result.action).toBe(PaymentActions.SUCCESSFUL)
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        session_id: "payses_test",
+      })
+    )
+  })
+
+  it("ignores an invalid Mercado Pago webhook signature", async () => {
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(
+      webhookPayload("127", {
+        "x-signature": "ts=1704908010,v1=bad",
+        "x-request-id": "req_123",
+      }) as any
+    )
+
+    expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
+    expect(getMock).not.toHaveBeenCalled()
+  })
+
+  it("ignores a Mercado Pago webhook with missing signature headers", async () => {
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("127", {}) as any)
+
+    expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
+    expect(getMock).not.toHaveBeenCalled()
+  })
+
+  it("fails safely when Mercado Pago payment id is unknown", async () => {
+    getMock.mockRejectedValueOnce(new Error("not found"))
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("404") as any)
+
+    expect(result.action).toBe(PaymentActions.FAILED)
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        session_id: "",
+      })
+    )
+  })
+
+  it("maps card approved webhooks to captured actions", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 128,
+      payment_method_id: "visa",
+      payment_type_id: "credit_card",
+      status: "approved",
+      status_detail: "accredited",
+      transaction_amount: 98.6,
+      captured: true,
+      external_reference: "payses_card",
+      metadata: {},
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("128") as any)
+
+    expect(result.action).toBe(PaymentActions.SUCCESSFUL)
+    expect(result.data?.session_id).toBe("payses_card")
+  })
+
+  it("maps card rejected webhooks to failed actions", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 129,
+      payment_method_id: "visa",
+      payment_type_id: "credit_card",
+      status: "rejected",
+      status_detail: "cc_rejected_other_reason",
+      transaction_amount: 98.6,
+      captured: false,
+      external_reference: "payses_rejected",
+      metadata: {},
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("129") as any)
+
+    expect(result.action).toBe(PaymentActions.FAILED)
+    expect(result.data?.session_id).toBe("payses_rejected")
+  })
+
+  it("keeps OXXO pending webhooks pending", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 130,
+      payment_method_id: "oxxo",
+      payment_type_id: "ticket",
+      status: "pending",
+      status_detail: "pending_waiting_payment",
+      transaction_amount: 98.6,
+      captured: false,
+      external_reference: "payses_oxxo",
+      metadata: {},
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("130") as any)
+
+    expect(result.action).toBe(PaymentActions.PENDING)
+    expect(result.data?.session_id).toBe("payses_oxxo")
+  })
+
+  it("maps OXXO pending to approved webhooks to captured actions", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 131,
+      payment_method_id: "oxxo",
+      payment_type_id: "ticket",
+      status: "approved",
+      status_detail: "accredited",
+      transaction_amount: 98.6,
+      captured: true,
+      external_reference: "payses_oxxo_paid",
+      metadata: {},
+      transaction_details: {
+        external_resource_url: "https://sandbox.mercadopago.test/voucher",
+        barcode: { content: "1234567890" },
+      },
+      date_of_expiration: "2026-08-25T00:00:00.000Z",
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("131") as any)
+
+    expect(result.action).toBe(PaymentActions.SUCCESSFUL)
+    expect(result.data?.session_id).toBe("payses_oxxo_paid")
+  })
+
+  it("maps OXXO expired or cancelled webhooks to canceled actions", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 132,
+      payment_method_id: "oxxo",
+      payment_type_id: "ticket",
+      status: "cancelled",
+      status_detail: "expired",
+      transaction_amount: 98.6,
+      captured: false,
+      external_reference: "payses_oxxo_expired",
+      metadata: {},
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("132") as any)
+
+    expect(result.action).toBe(PaymentActions.CANCELED)
+    expect(result.data?.session_id).toBe("payses_oxxo_expired")
+  })
+
+  it("processes duplicate webhooks idempotently", async () => {
+    const mpPayment = {
+      id: 133,
+      payment_method_id: "visa",
+      payment_type_id: "credit_card",
+      status: "approved",
+      status_detail: "accredited",
+      transaction_amount: 98.6,
+      captured: true,
+      external_reference: "payses_duplicate",
+      metadata: {},
+    }
+    getMock.mockResolvedValueOnce(mpPayment).mockResolvedValueOnce(mpPayment)
+
+    const provider = createProvider({ webhookSecret: WEBHOOK_SECRET })
+    const first = await provider.getWebhookActionAndData(webhookPayload("133") as any)
+    const second = await provider.getWebhookActionAndData(webhookPayload("133") as any)
+
+    expect(first).toEqual(second)
+    expect(captureMock).not.toHaveBeenCalled()
+  })
+
+  it("fails safely when Mercado Pago payment API fails", async () => {
+    getMock.mockRejectedValueOnce(new Error("Mercado Pago unavailable"))
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("134") as any)
+
+    expect(result.action).toBe(PaymentActions.FAILED)
+    expect(logger.error).toHaveBeenCalled()
+  })
+
+  it("correlates webhook payments without storefront metadata.session_id", async () => {
+    getMock.mockResolvedValueOnce({
+      id: 135,
+      payment_method_id: "visa",
+      payment_type_id: "credit_card",
+      status: "approved",
+      status_detail: "accredited",
+      transaction_amount: 98.6,
+      captured: true,
+      external_reference: "payses_external_reference",
+      metadata: {},
+    })
+
+    const result = await createProvider({
+      webhookSecret: WEBHOOK_SECRET,
+    }).getWebhookActionAndData(webhookPayload("135") as any)
+
+    expect(result.action).toBe(PaymentActions.SUCCESSFUL)
+    expect(result.data?.session_id).toBe("payses_external_reference")
   })
 })

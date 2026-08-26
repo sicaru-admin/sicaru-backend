@@ -14,6 +14,8 @@ export type MercadoPagoPaymentMethod =
 export type MercadoPagoPaymentData = {
   /** Mercado Pago payment ID */
   id: string | number
+  /** Medusa payment session ID mirrored to Mercado Pago for webhook correlation */
+  external_reference?: string
   /** Payment method used */
   payment_method_id?: string
   /** Payment method type (credit_card, debit_card, ticket, bank_transfer) */
@@ -49,6 +51,7 @@ export type MercadoPagoStatus =
   | "in_mediation"
   | "rejected"
   | "cancelled"
+  | "expired"
   | "refunded"
   | "charged_back"
 

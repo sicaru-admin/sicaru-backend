@@ -35,6 +35,7 @@ import {
   isOfflinePayment,
   validateOxxoAmount,
   getOxxoExpirationDate,
+  validateMercadoPagoWebhookSignature,
 } from "./utils"
 
 type InjectedDependencies = {
@@ -99,7 +100,12 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       },
       metadata: {
         session_id: sessionId,
+        medusa_payment_session_id: sessionId,
       },
+    }
+
+    if (sessionId) {
+      paymentBody.external_reference = sessionId
     }
 
     // Card payments require a token from the frontend
@@ -142,6 +148,7 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
 
       const responseData: MercadoPagoPaymentData = {
         id: mpPayment.id!,
+        external_reference: mpPayment.external_reference,
         payment_method_id: mpPayment.payment_method_id,
         payment_type_id: mpPayment.payment_type_id,
         mp_status: mpPayment.status,
@@ -232,12 +239,22 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
       throw new Error("No MercadoPago payment ID to capture")
     }
 
-    // Offline payments (OXXO/SPEI) auto-capture when customer pays
-    if (isOfflinePayment(input.data)) {
-      return { data: input.data }
-    }
-
     try {
+      // Offline payments (OXXO/SPEI) are not captured by an API call here.
+      // Mercado Pago marks them approved only after the customer pays the
+      // voucher/transfer. When Medusa processes that webhook as captured, we
+      // refresh the stored data so the order reflects the real financial state.
+      if (isOfflinePayment(input.data)) {
+        const current = await this.payment_.get({ id: String(mpPaymentId) })
+
+        return {
+          data: {
+            ...(input.data || {}),
+            ...this.buildPaymentData(current),
+          },
+        }
+      }
+
       if (input.data?.captured === true) {
         return { data: input.data }
       }
@@ -422,27 +439,38 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
   async getWebhookActionAndData(
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
-    const { data, rawData, headers } = payload
+    const { data, headers } = payload
     const webhookData = data as Record<string, any>
 
     // MP webhook sends { action: "payment.updated", data: { id: "123" } }
     // or { type: "payment", data: { id: "123" } }
-    const paymentId =
-      webhookData?.data?.id || webhookData?.id
+    const paymentId = this.getWebhookPaymentId(webhookData)
 
     if (!paymentId) {
       return { action: PaymentActions.NOT_SUPPORTED }
     }
 
+    if (
+      !validateMercadoPagoWebhookSignature({
+        headers,
+        dataId: String(paymentId),
+        secret: this.options_.webhookSecret,
+      })
+    ) {
+      this.logger_.info("MercadoPago webhook ignored: invalid signature")
+      return { action: PaymentActions.NOT_SUPPORTED }
+    }
+
     try {
-      // Fetch full payment details from MP
+      // The webhook payload is only a notification. Always fetch the payment
+      // from Mercado Pago and use that object as the source of truth.
       const mpPayment = await this.payment_.get({ id: String(paymentId) })
 
-      const sessionId = mpPayment.metadata?.session_id as string | undefined
+      const sessionId = this.getMedusaSessionId(mpPayment)
 
       if (!sessionId) {
         this.logger_.info(
-          `MercadoPago webhook: no session_id in metadata for payment ${paymentId}`
+          `MercadoPago webhook: no Medusa session correlation for payment ${paymentId}`
         )
         return { action: PaymentActions.NOT_SUPPORTED }
       }
@@ -490,6 +518,7 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
           }
 
         case "cancelled":
+        case "expired":
           return {
             action: PaymentActions.CANCELED,
             data: { session_id: sessionId, amount },
@@ -517,6 +546,57 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
         },
       }
     }
+  }
+
+  private getWebhookPaymentId(webhookData: Record<string, any>): string | undefined {
+    const paymentId =
+      webhookData?.data?.id ||
+      webhookData?.id ||
+      webhookData?.resource ||
+      webhookData?.["data.id"]
+
+    return paymentId === undefined || paymentId === null
+      ? undefined
+      : String(paymentId)
+  }
+
+  private getMedusaSessionId(mpPayment: Record<string, any>): string | undefined {
+    const metadata = mpPayment.metadata || {}
+    const candidates = [
+      metadata.medusa_payment_session_id,
+      metadata.session_id,
+      mpPayment.external_reference,
+    ]
+
+    return candidates.find(
+      (candidate) => typeof candidate === "string" && candidate.startsWith("payses_")
+    )
+  }
+
+  private buildPaymentData(mpPayment: Record<string, any>): MercadoPagoPaymentData {
+    const data: MercadoPagoPaymentData = {
+      id: mpPayment.id!,
+      external_reference: mpPayment.external_reference,
+      payment_method_id: mpPayment.payment_method_id,
+      payment_type_id: mpPayment.payment_type_id,
+      mp_status: mpPayment.status,
+      status_detail: mpPayment.status_detail,
+      transaction_amount: mpPayment.transaction_amount,
+      currency_id: mpPayment.currency_id,
+      captured: mpPayment.captured,
+      session_id: this.getMedusaSessionId(mpPayment),
+    }
+
+    if (isOfflinePayment(data as unknown as Record<string, unknown>)) {
+      data.voucher_url = mpPayment.transaction_details?.external_resource_url
+      data.barcode = mpPayment.transaction_details?.barcode?.content
+      data.reference =
+        mpPayment.transaction_details?.payment_method_reference_id ||
+        mpPayment.point_of_interaction?.transaction_data?.ticket_url
+      data.expiration_date = mpPayment.date_of_expiration
+    }
+
+    return data
   }
 }
 
