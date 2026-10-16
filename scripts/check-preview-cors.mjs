@@ -69,7 +69,18 @@ if (process.argv.includes("--cart")) {
   const regionData = await request("/store/regions");
   const region = regionData.regions?.find(r => r.currency_code === "mxn" && r.countries?.some(c => c.iso_2 === "mx"));
   if (!region?.id) throw new Error("Review Mexico/MXN region missing");
-  const result = await request("/store/carts", "POST", { region_id: region.id, sales_channel_id: channelId });
+  let result;
+  try {
+    result = await request("/store/carts", "POST", { region_id: region.id, sales_channel_id: channelId });
+  } catch (error) {
+    // A diagnostic cart without an explicit channel lets Medusa reveal the
+    // channel associated with this exact public key. Keep the original failure.
+    const diagnostic = await request("/store/carts", "POST", { region_id: region.id });
+    console.log(JSON.stringify({ check: "backend-assigned-channel-diagnostic",
+      sales_channel_id: diagnostic.cart?.sales_channel_id,
+      cartEmpty: diagnostic.cart?.items?.length === 0 }));
+    throw error;
+  }
   const cart = result.cart;
   if (!cart?.id || cart.sales_channel_id !== channelId || cart.region_id !== region.id)
     throw new Error("Created review cart does not match the configured channel and region");
