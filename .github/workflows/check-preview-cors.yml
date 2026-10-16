@@ -1,0 +1,25 @@
+name: Preview CORS probe
+
+on:
+  push:
+    branches: [codex/dhl-provisional]
+    paths:
+      - scripts/check-preview-cors.mjs
+      - .github/workflows/check-preview-cors.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preview-cors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check live review origins and cart preflights without credentials
+        run: node scripts/check-preview-cors.mjs
