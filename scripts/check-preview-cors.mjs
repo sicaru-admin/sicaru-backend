@@ -41,15 +41,17 @@ console.log("Six live CORS preflights passed. Cart creation and sales-channel ac
 
 if (process.argv.includes("--cart")) {
   const { createHash } = await import("node:crypto");
-  const expectedKeyFingerprint = "b3e43aa4d33eab191f9215d64c5290d1d3edc2fa7a25207c6b368752b8e18bab";
+  const expectedKeyFingerprint = "92aaccb2b97cd7f65e471d33585df871d56f7d1a8dda5e9f7a29c3a578c40873";
   const channelId = "sc_01KZD6DTFPXNTG52EGDHYY00BJ"; // Public Preview channel, not a secret.
-  const origin = origins[0];
+  const origin = origins[1];
   // Diagnose only the public configuration returned by this isolated backend.
   const bootstrapResponse = await fetch(backend + "/storefront-config", { signal: AbortSignal.timeout(15000), redirect: "error" });
   if (!bootstrapResponse.ok) throw new Error("Review public config unavailable");
   const bootstrap = await bootstrapResponse.json();
   const key = bootstrap.publishable_key;
   if (typeof key !== "string" || !/^pk_[a-zA-Z0-9]+$/.test(key)) throw new Error("Expected a publishable browser key");
+  if (createHash("sha256").update(key).digest("hex") !== expectedKeyFingerprint)
+    throw new Error("Public review config no longer matches the verified branch-specific Preview key");
   console.log(JSON.stringify({ check: "isolated-public-config-key",
     fingerprint: createHash("sha256").update(key).digest("hex"),
     sameAsCurrentPreview: createHash("sha256").update(key).digest("hex") === expectedKeyFingerprint }));
@@ -112,6 +114,6 @@ if (process.argv.includes("--cart")) {
     if (empty.cart?.items?.length !== 0) throw new Error("Review cart cleanup did not leave it empty");
     console.log(JSON.stringify({ check: "test-product-removed-cart-empty", passed: true }));
   }
-  console.log(JSON.stringify({ check: "verified-isolated-public-config", publishable_key: key, sales_channel_id: channelId }));
+  console.log(JSON.stringify({ check: "verified-isolated-public-config", fingerprint: expectedKeyFingerprint, sales_channel_id: channelId }));
   console.log("Real review cart/channel/API checks passed. No email, address, payment session, order or label created. Browser UI is a separate check.");
 }
