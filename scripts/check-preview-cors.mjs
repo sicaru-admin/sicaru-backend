@@ -42,7 +42,7 @@ console.log("Six live CORS preflights passed. Cart creation and sales-channel ac
 if (process.argv.includes("--cart")) {
   const { createHash } = await import("node:crypto");
   const expectedKeyFingerprint = "b3e43aa4d33eab191f9215d64c5290d1d3edc2fa7a25207c6b368752b8e18bab";
-  const channelId = "sc_01KZD6DTFPXNTG52EGDHYY00BJ"; // Public Preview channel, not a secret.
+  const channelId = "sc_01KYV6FN212F2TC60EGBY2KNED"; // Public Preview channel, not a secret.
   const origin = origins[0];
   // Public browser key from the isolated Preview's published client bundle,
   // verified through the authorized Vercel connector. This is not an admin key.
