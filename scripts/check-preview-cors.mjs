@@ -1,4 +1,4 @@
-// Read-only check of the deployed review backend; no API keys, carts or payments.
+// Review-only checks: default OPTIONS reads; --cart performs anonymous cart CRUD and cleanup. No payments, orders or labels.
 const backend = "https://sicaru-backend-preview-payments.up.railway.app";
 const origins = [
   "https://sicaru-6sdncskmy-sicaru-admins-projects.vercel.app",
@@ -38,3 +38,65 @@ for (const origin of origins) {
   }
 }
 console.log("Six live CORS preflights passed. Cart creation and sales-channel acceptance are separate checks.");
+
+if (process.argv.includes("--cart")) {
+  const { createHash } = await import("node:crypto");
+  const expectedKeyFingerprint = "b3e43aa4d33eab191f9215d64c5290d1d3edc2fa7a25207c6b368752b8e18bab";
+  const channelId = "sc_01KZD6DTFPXNTG52EGDHYY00BJ"; // Public Preview channel, not a secret.
+  const origin = origins[0];
+  const bootstrapResponse = await fetch(backend + "/storefront-config", { signal: AbortSignal.timeout(15000), redirect: "error" });
+  if (!bootstrapResponse.ok) throw new Error("Cannot read public config from review backend");
+  const bootstrap = await bootstrapResponse.json();
+  const key = bootstrap.publishable_key;
+  if (typeof key !== "string" || createHash("sha256").update(key).digest("hex") !== expectedKeyFingerprint)
+    throw new Error("Review backend public key does not match the configured Preview fingerprint");
+  console.log(JSON.stringify({ check: "public-key-fingerprint", passed: true }));
+
+  async function request(path, method = "GET", body) {
+    const res = await fetch(backend + path, {
+      method, signal: AbortSignal.timeout(20000), redirect: "error",
+      headers: { Origin: origin, "x-publishable-api-key": key, "Content-Type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const data = await res.json();
+    const cors = res.headers.get("access-control-allow-origin") === origin &&
+      res.headers.get("access-control-allow-credentials") === "true";
+    console.log(JSON.stringify({ check: "store-api", path: path.replace(/cart_[^/]+/g, ":cart").replace(/cali_[^/]+/g, ":line"), method, status: res.status, cors }));
+    if (!res.ok) throw new Error("Review API failed: " + method + " " + path.split("?")[0] + " (" + res.status + "), type=" + data.type);
+    if (!cors) throw new Error("Actual review API response is missing credentialed CORS");
+    return data;
+  }
+  const regionData = await request("/store/regions");
+  const region = regionData.regions?.find(r => r.currency_code === "mxn" && r.countries?.some(c => c.iso_2 === "mx"));
+  if (!region?.id) throw new Error("Review Mexico/MXN region missing");
+  const result = await request("/store/carts", "POST", { region_id: region.id, sales_channel_id: channelId });
+  const cart = result.cart;
+  if (!cart?.id || cart.sales_channel_id !== channelId || cart.region_id !== region.id)
+    throw new Error("Created review cart does not match the configured channel and region");
+  console.log(JSON.stringify({ check: "cart-created-with-preview-channel", passed: true }));
+  const products = await request("/store/products?handle=voglia-tinte-permanente-90ml&limit=1&region_id=" + encodeURIComponent(region.id));
+  const variant = products.products?.[0]?.variants?.[0];
+  if (!variant?.id) throw new Error("Review Voglia variant missing");
+  let lineId;
+  try {
+    const added = await request("/store/carts/" + cart.id + "/line-items", "POST", { variant_id: variant.id, quantity: 1 });
+    const line = added.cart?.items?.find(i => i.variant_id === variant.id);
+    if (!line?.id || line.quantity !== 1) throw new Error("Review line item was not added");
+    lineId = line.id;
+    const updated = await request("/store/carts/" + cart.id + "/line-items/" + lineId, "POST", { quantity: 2 });
+    if (updated.cart?.items?.find(i => i.id === lineId)?.quantity !== 2)
+      throw new Error("Review quantity was not updated");
+    console.log(JSON.stringify({ check: "voglia-added-and-quantity-updated", passed: true }));
+    const quoteResponse = await request("/store/carts/" + cart.id + "/dhl-quote");
+    const quote = quoteResponse.quote;
+    if (quote.status !== "quote_required" || quote.reason !== "tariff_unconfirmed" || quoteResponse.shipping_options?.length !== 0)
+      throw new Error("Expected disabled DHL, received " + quote.status + "/" + quote.reason);
+    console.log(JSON.stringify({ check: "dhl-disabled-on-real-cart", passed: true }));
+  } finally {
+    if (lineId) await request("/store/carts/" + cart.id + "/line-items/" + lineId, "DELETE");
+    const empty = await request("/store/carts/" + cart.id);
+    if (empty.cart?.items?.length !== 0) throw new Error("Review cart cleanup did not leave it empty");
+    console.log(JSON.stringify({ check: "test-product-removed-cart-empty", passed: true }));
+  }
+  console.log("Real review cart/channel/API checks passed. No email, address, payment session, order or label created. Browser UI is a separate check.");
+}
