@@ -62,7 +62,7 @@ if (process.argv.includes("--cart")) {
     const cors = res.headers.get("access-control-allow-origin") === origin &&
       res.headers.get("access-control-allow-credentials") === "true";
     console.log(JSON.stringify({ check: "store-api", path: path.replace(/cart_[^/]+/g, ":cart").replace(/cali_[^/]+/g, ":line"), method, status: res.status, cors }));
-    if (!res.ok) throw new Error("Review API failed: " + method + " " + path.split("?")[0] + " (" + res.status + "), type=" + data.type);
+    if (!res.ok) throw new Error("Review API failed: " + method + " " + path.split("?")[0] + " (" + res.status + "), detail=" + JSON.stringify({ type: data.type, message: data.message, errors: data.errors }).replace(/pk_[a-zA-Z0-9]+/g, "[public-key-redacted]"));
     if (!cors) throw new Error("Actual review API response is missing credentialed CORS");
     return data;
   }
