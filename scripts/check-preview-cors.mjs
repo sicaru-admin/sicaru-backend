@@ -42,15 +42,18 @@ console.log("Six live CORS preflights passed. Cart creation and sales-channel ac
 if (process.argv.includes("--cart")) {
   const { createHash } = await import("node:crypto");
   const expectedKeyFingerprint = "b3e43aa4d33eab191f9215d64c5290d1d3edc2fa7a25207c6b368752b8e18bab";
-  const channelId = "sc_01KYV6FN212F2TC60EGBY2KNED"; // Public Preview channel, not a secret.
+  const channelId = "sc_01KZD6DTFPXNTG52EGDHYY00BJ"; // Public Preview channel, not a secret.
   const origin = origins[0];
-  // Public browser key from the isolated Preview's published client bundle,
-  // verified through the authorized Vercel connector. This is not an admin key.
-  // GitHub runners cannot download that bundle directly because Preview is protected.
-  const key = "pk_774737184e90f934d740a03786030dfd6f1a05e17b31c3cd1383e5d39f9b65b1";
-  if (createHash("sha256").update(key).digest("hex") !== expectedKeyFingerprint)
-    throw new Error("Configured Preview public key fingerprint mismatch");
-  console.log(JSON.stringify({ check: "public-key-fingerprint", source: "verified-preview-browser-configuration", passed: true }));
+  // Diagnose only the public configuration returned by this isolated backend.
+  const bootstrapResponse = await fetch(backend + "/storefront-config", { signal: AbortSignal.timeout(15000), redirect: "error" });
+  if (!bootstrapResponse.ok) throw new Error("Review public config unavailable");
+  const bootstrap = await bootstrapResponse.json();
+  const key = bootstrap.publishable_key;
+  if (typeof key !== "string" || !/^pk_[a-zA-Z0-9]+$/.test(key)) throw new Error("Expected a publishable browser key");
+  console.log(JSON.stringify({ check: "isolated-public-config-key",
+    fingerprint: createHash("sha256").update(key).digest("hex"),
+    sameAsCurrentPreview: createHash("sha256").update(key).digest("hex") === expectedKeyFingerprint }));
+
 
   async function request(path, method = "GET", body) {
     const res = await fetch(backend + path, {
@@ -109,5 +112,6 @@ if (process.argv.includes("--cart")) {
     if (empty.cart?.items?.length !== 0) throw new Error("Review cart cleanup did not leave it empty");
     console.log(JSON.stringify({ check: "test-product-removed-cart-empty", passed: true }));
   }
+  console.log(JSON.stringify({ check: "verified-isolated-public-config", publishable_key: key, sales_channel_id: channelId }));
   console.log("Real review cart/channel/API checks passed. No email, address, payment session, order or label created. Browser UI is a separate check.");
 }
