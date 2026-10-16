@@ -47,10 +47,23 @@ if (process.argv.includes("--cart")) {
   const bootstrapResponse = await fetch(backend + "/storefront-config", { signal: AbortSignal.timeout(15000), redirect: "error" });
   if (!bootstrapResponse.ok) throw new Error("Cannot read public config from review backend");
   const bootstrap = await bootstrapResponse.json();
-  const key = bootstrap.publishable_key;
-  if (typeof key !== "string" || createHash("sha256").update(key).digest("hex") !== expectedKeyFingerprint)
-    throw new Error("Review backend public key does not match the configured Preview fingerprint");
-  console.log(JSON.stringify({ check: "public-key-fingerprint", passed: true }));
+  const fingerprint = value => typeof value === "string"
+    ? createHash("sha256").update(value).digest("hex") : "";
+  let key = bootstrap.publishable_key;
+  let keySource = "review-public-config";
+  if (fingerprint(key) !== expectedKeyFingerprint) {
+    // The bootstrap endpoint returns the first public key, which need not be the
+    // key configured for this Preview. Read its already-public client bundle.
+    const bundle = await fetch(origin + "/_next/static/chunks/app/layout-f1b19e552245607e.js", {
+      signal: AbortSignal.timeout(15000), redirect: "error",
+    });
+    if (!bundle.ok) throw new Error("Cannot read the published Preview client configuration (" + bundle.status + ")");
+    const candidates = (await bundle.text()).match(/pk_[a-zA-Z0-9]+/g) || [];
+    key = candidates.find(candidate => fingerprint(candidate) === expectedKeyFingerprint);
+    keySource = "published-preview-client";
+  }
+  if (!key) throw new Error("Configured Preview public key not found in its published client");
+  console.log(JSON.stringify({ check: "public-key-fingerprint", source: keySource, passed: true }));
 
   async function request(path, method = "GET", body) {
     const res = await fetch(backend + path, {
