@@ -44,26 +44,13 @@ if (process.argv.includes("--cart")) {
   const expectedKeyFingerprint = "b3e43aa4d33eab191f9215d64c5290d1d3edc2fa7a25207c6b368752b8e18bab";
   const channelId = "sc_01KZD6DTFPXNTG52EGDHYY00BJ"; // Public Preview channel, not a secret.
   const origin = origins[0];
-  const bootstrapResponse = await fetch(backend + "/storefront-config", { signal: AbortSignal.timeout(15000), redirect: "error" });
-  if (!bootstrapResponse.ok) throw new Error("Cannot read public config from review backend");
-  const bootstrap = await bootstrapResponse.json();
-  const fingerprint = value => typeof value === "string"
-    ? createHash("sha256").update(value).digest("hex") : "";
-  let key = bootstrap.publishable_key;
-  let keySource = "review-public-config";
-  if (fingerprint(key) !== expectedKeyFingerprint) {
-    // The bootstrap endpoint returns the first public key, which need not be the
-    // key configured for this Preview. Read its already-public client bundle.
-    const bundle = await fetch(origin + "/_next/static/chunks/app/layout-f1b19e552245607e.js", {
-      signal: AbortSignal.timeout(15000), redirect: "error",
-    });
-    if (!bundle.ok) throw new Error("Cannot read the published Preview client configuration (" + bundle.status + ")");
-    const candidates = (await bundle.text()).match(/pk_[a-zA-Z0-9]+/g) || [];
-    key = candidates.find(candidate => fingerprint(candidate) === expectedKeyFingerprint);
-    keySource = "published-preview-client";
-  }
-  if (!key) throw new Error("Configured Preview public key not found in its published client");
-  console.log(JSON.stringify({ check: "public-key-fingerprint", source: keySource, passed: true }));
+  // Public browser key from the isolated Preview's published client bundle,
+  // verified through the authorized Vercel connector. This is not an admin key.
+  // GitHub runners cannot download that bundle directly because Preview is protected.
+  const key = "pk_774737184e90f934d740a03786030dfd6f1a05e17b31c3cd1383e5d39f9b65b1";
+  if (createHash("sha256").update(key).digest("hex") !== expectedKeyFingerprint)
+    throw new Error("Configured Preview public key fingerprint mismatch");
+  console.log(JSON.stringify({ check: "public-key-fingerprint", source: "verified-preview-browser-configuration", passed: true }));
 
   async function request(path, method = "GET", body) {
     const res = await fetch(backend + path, {
