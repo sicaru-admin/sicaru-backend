@@ -13,6 +13,9 @@
     "medusa"
   ],
   "scripts": {
+    "test:dhl": "node tests/dhl-policy.test.mjs && node tests/dhl-server.test.mjs",
+    "audit:dhl": "medusa exec ./src/scripts/audit-dhl-readiness.ts",
+    "plan:dhl": "medusa exec ./src/scripts/prepare-dhl-options.ts",
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "seed:sicaru": "medusa exec ./src/scripts/seed-sicaru.ts",
@@ -55,3 +58,4 @@
   },
   "packageManager": "npm@11.8.0"
 }
+

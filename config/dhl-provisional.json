@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "revision": "dhl-provisional-review-1",
+  "terms": {
+    "accountConfirmed": false,
+    "serviceCode": null,
+    "originPostalCode": null,
+    "source": null,
+    "verifiedAt": null,
+    "validUntil": null,
+    "taxInclusive": null,
+    "allSurchargesConfirmed": false,
+    "volumetricMode": null,
+    "volumetricDivisor": null,
+    "roundingIncrementGrams": null
+  },
+  "variants": {},
+  "packages": {},
+  "coverage": {},
+  "optionIds": {
+    "standard_1_2": null,
+    "standard_2_5": null,
+    "remote_1_2": null,
+    "remote_2_5": null
+  }
+}
