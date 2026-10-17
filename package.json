@@ -13,7 +13,7 @@
     "medusa"
   ],
   "scripts": {
-    "test:dhl": "node tests/dhl-policy.test.mjs && node tests/dhl-server.test.mjs",
+    "test:dhl": "node --test tests/*.test.mjs",
     "audit:dhl": "medusa exec ./src/scripts/audit-dhl-readiness.ts",
     "plan:dhl": "medusa exec ./src/scripts/prepare-dhl-options.ts",
     "build": "medusa build",
@@ -58,4 +58,3 @@
   },
   "packageManager": "npm@11.8.0"
 }
-

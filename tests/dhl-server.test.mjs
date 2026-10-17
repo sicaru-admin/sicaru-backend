@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 import { registerHooks } from "node:module";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fixture } from "./dhl-fixtures.mjs";
@@ -225,4 +225,18 @@ test("missing contact or an incomplete address cannot complete or initiate payme
   let routeError;
   await guardDhlPayment({scope:container,params:{id:"collection_test"}},{}, error=>{routeError=error});
   assert.match(routeError.message,/dirección/);
+});
+
+test("the production start layout reads the disabled root policy without enabling DHL", () => {
+  const previousCwd = process.cwd();
+  const runtime = join(directory, ".medusa/server");
+  const config = join(directory, "config");
+  mkdirSync(runtime, { recursive: true }); mkdirSync(config, { recursive: true });
+  writeFileSync(join(config, "dhl-provisional.json"), JSON.stringify({ schemaVersion: 1, enabled: false }));
+  try {
+    delete process.env.DHL_POLICY_FILE; process.chdir(runtime);
+    assert.equal(readDhlPolicy().enabled, false);
+  } finally {
+    process.chdir(previousCwd); process.env.DHL_POLICY_FILE = join(directory, "policy.json");
+  }
 });

@@ -7,14 +7,17 @@ import { quoteDhl, assertSelectedDhl, quoteRequired } from "./dhl-policy";
 import type { DhlCart, DhlPolicy, DhlQuote } from "./dhl-policy";
 
 export function readDhlPolicy(): DhlPolicy | null {
-  try {
-    return JSON.parse(readFileSync(
-      process.env.DHL_POLICY_FILE || join(process.cwd(), "config/dhl-provisional.json"),
-      "utf8"
-    )) as DhlPolicy;
-  } catch {
-    return null;
+  const files = process.env.DHL_POLICY_FILE ? [process.env.DHL_POLICY_FILE] : [
+    join(process.cwd(), "config/dhl-provisional.json"),
+    join(process.cwd(), "../../config/dhl-provisional.json"),
+  ];
+  for (const file of files) {
+    try { return JSON.parse(readFileSync(file, "utf8")) as DhlPolicy; }
+    catch (error) {
+      if ((error as { code?: string }).code !== "ENOENT") return null;
+    }
   }
+  return null;
 }
 
 const CART_FIELDS = [

@@ -1,3 +1,4 @@
+import { readDhlPolicy } from "../../../lib/dhl-checkout";
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { reviewPaymentReadiness, REVIEW_ENVIRONMENT_ID } from "../../../lib/review-payment-safety";
 export async function GET(_req: MedusaRequest, res: MedusaResponse) {
@@ -5,5 +6,6 @@ export async function GET(_req: MedusaRequest, res: MedusaResponse) {
     res.status(404).json({ message: "Not found" }); return;
   }
   res.setHeader("Cache-Control", "private, no-store");
-  res.json({ environment: "preview-payments", payments: reviewPaymentReadiness(process.env), publicKey: process.env.MERCADOPAGO_PUBLIC_KEY?.startsWith("TEST-") ? process.env.MERCADOPAGO_PUBLIC_KEY : undefined });
+  const policy = readDhlPolicy();
+  res.json({ dhl: { policyPresent: policy !== null, enabled: policy?.enabled === true }, environment: "preview-payments", payments: reviewPaymentReadiness(process.env), publicKey: process.env.MERCADOPAGO_PUBLIC_KEY?.startsWith("TEST-") ? process.env.MERCADOPAGO_PUBLIC_KEY : undefined });
 }
