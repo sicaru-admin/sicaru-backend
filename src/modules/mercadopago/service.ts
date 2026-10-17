@@ -1,3 +1,4 @@
+import { assertReviewPaymentSafety } from "../../lib/review-payment-safety"
 import {
   AbstractPaymentProvider,
   BigNumber,
@@ -75,6 +76,7 @@ class MercadoPagoProviderService extends AbstractPaymentProvider<MercadoPagoOpti
     input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
     const { amount, currency_code, data, context } = input
+    assertReviewPaymentSafety(process.env, context?.idempotency_key)
     const paymentMethodId = data?.payment_method_id as string | undefined
     const amountNumber = Number(amount)
 

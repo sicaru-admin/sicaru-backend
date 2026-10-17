@@ -216,3 +216,13 @@ test("the administrative audit reads raw units and flags missing or demo weights
   assert.equal(report.weight_audit[1].matches_demo_400_value, true);
   assert.deepEqual(products, before);
 });
+
+test("missing contact or an incomplete address cannot complete or initiate payment", async () => {
+  state.cart.email = "";
+  await assert.rejects(validations.complete({input:{id:"cart_test"}}, {container}), /correo/);
+  state.cart.email = "review@example.invalid";
+  delete state.cart.shipping_address.address_1;
+  let routeError;
+  await guardDhlPayment({scope:container,params:{id:"collection_test"}},{}, error=>{routeError=error});
+  assert.match(routeError.message,/dirección/);
+});

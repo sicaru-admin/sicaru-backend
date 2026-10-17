@@ -39,9 +39,10 @@ export type DhlPolicy = {
 
 export type DhlCart = {
   id: string;
+  email?: string | null;
   currency_code?: string | null;
   items?: { variant_id?: string | null; quantity: number }[] | null;
-  shipping_address?: { country_code?: string | null; postal_code?: string | null } | null;
+  shipping_address?: { country_code?: string | null; postal_code?: string | null; first_name?: string | null; last_name?: string | null; address_1?: string | null; city?: string | null; province?: string | null; phone?: string | null } | null;
   shipping_methods?: {
     shipping_option_id?: string | null;
     amount?: number;

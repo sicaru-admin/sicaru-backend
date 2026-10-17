@@ -23,9 +23,9 @@ export function fixture(grossGrams = 1000) {
     },
   };
   const cart = {
-    id: "cart_test", currency_code: "mxn",
+    id: "cart_test", email: "review@example.invalid", currency_code: "mxn",
     items: [{ variant_id: "variant_test", quantity: 1 }],
-    shipping_address: { country_code: "mx", postal_code: "01000" },
+    shipping_address: { country_code: "mx", postal_code: "01000", first_name: "Prueba", last_name: "Sicaru", address_1: "Domicilio de prueba", city: "Ciudad de prueba", province: "NL", phone: "0000000000" },
     shipping_methods: [{ shipping_option_id: "dhl_small_test", amount: 214, is_tax_inclusive: true }],
     shipping_total: 214, total: 514,
   };

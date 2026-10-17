@@ -18,7 +18,7 @@ export function readDhlPolicy(): DhlPolicy | null {
 }
 
 const CART_FIELDS = [
-  "id", "currency_code", "total", "shipping_total",
+  "id", "email", "currency_code", "total", "shipping_total",
   "items.variant_id", "items.quantity", "shipping_address.*",
   "shipping_methods.shipping_option_id", "shipping_methods.amount",
   "shipping_methods.is_tax_inclusive",
@@ -77,6 +77,11 @@ export async function requireSelectedDhl(container: MedusaContainer, cartId: str
 
 export async function requireDhlPayment(container: MedusaContainer, cartId: string) {
   const state = await requireSelectedDhl(container, cartId);
+  const address = state.cart.shipping_address as Record<string, unknown> | null | undefined;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.cart.email ?? "") ||
+      !address || ["first_name", "last_name", "address_1", "city", "province", "phone"].some(key => typeof address[key] !== "string" || !(address[key] as string).trim())) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Completa tu correo, teléfono y dirección de entrega antes de pagar.");
+  }
   const collection = state.cart.payment_collection;
   if (!collection || Number(collection.amount) !== Number(state.cart.total) ||
       collection.currency_code?.toLowerCase() !== "mxn") {
