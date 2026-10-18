@@ -7,7 +7,7 @@ export const APPROVED_VOGLIA_OFFER = {
   tax_inclusive: true,
   components: [
     { kind: "tinte", quantity: 1, declared_content: 90, unit: "ml" },
-    { kind: "peroxido", quantity: 1, declared_content: 140, unit: "ml" },
+    { kind: "peroxido", developer_volumes: 20, quantity: 1, declared_content: 140, unit: "ml" },
   ],
   shipping_weight: null,
   mapping_status: "requires_inventory_and_tax_audit",
