@@ -1,3 +1,4 @@
+import { blockReviewExternalEffects } from "../lib/review-external-effects"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { ABANDONED_CART_MODULE } from "../modules/abandoned-cart"
@@ -22,6 +23,7 @@ const DISCOUNT_THRESHOLD = 50000
 export default async function cartAbandonmentRecovery(
   container: MedusaContainer
 ) {
+  if (blockReviewExternalEffects(process.env)) return
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
     error: (...args: any[]) => void

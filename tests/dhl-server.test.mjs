@@ -33,7 +33,7 @@ const hook = registerHooks({
   resolve(specifier, context, next) {
     if (specifier === "@medusajs/framework/utils") return {
       shortCircuit: true,
-      url: "data:text/javascript,export const ContainerRegistrationKeys={QUERY:'query'}; export const MedusaError=" + globals + ".MedusaError;",
+      url: "data:text/javascript,export const ContainerRegistrationKeys={QUERY:'query'}; export const Modules={INVENTORY:'inventory'}; export const MedusaError=" + globals + ".MedusaError;",
     };
     if (specifier === "@medusajs/medusa/core-flows") return {
       shortCircuit: true,
@@ -42,7 +42,7 @@ const hook = registerHooks({
     if (specifier === "@medusajs/framework/http") return {
       shortCircuit: true, url: "data:text/javascript,export const defineMiddlewares = (value) => value;",
     };
-    if (/\/dhl-(policy|checkout)$/.test(specifier)) {
+    if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) {
       return next(new URL(specifier + ".ts", context.parentURL).href, context);
     }
     return next(specifier, context);

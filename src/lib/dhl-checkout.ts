@@ -5,6 +5,10 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 import { listShippingOptionsForCartWorkflow } from "@medusajs/medusa/core-flows";
 import { quoteDhl, assertSelectedDhl, quoteRequired } from "./dhl-policy";
 import type { DhlCart, DhlPolicy, DhlQuote } from "./dhl-policy";
+import { getReviewShippingCheckout, verifyReviewShippingPayment } from "./review-shipping";
+import type { ReviewShippingQuote } from "./review-shipping";
+import { assertReviewTotal } from "./review-shipping-policy";
+import type { ReviewCart } from "./review-shipping-policy";
 
 export function readDhlPolicy(): DhlPolicy | null {
   const files = process.env.DHL_POLICY_FILE ? [process.env.DHL_POLICY_FILE] : [
@@ -21,11 +25,14 @@ export function readDhlPolicy(): DhlPolicy | null {
 }
 
 const CART_FIELDS = [
-  "id", "email", "currency_code", "total", "shipping_total",
-  "items.variant_id", "items.quantity", "shipping_address.*",
+  "id", "email", "currency_code", "total", "shipping_total", "region_id", "sales_channel_id", "item_total", "discount_total",
+  "items.variant_id", "items.quantity", "items.unit_price", "items.is_tax_inclusive", "shipping_address.*",
   "shipping_methods.shipping_option_id", "shipping_methods.amount",
   "shipping_methods.is_tax_inclusive",
   "payment_collection.amount", "payment_collection.currency_code",
+  "payment_collection.payment_sessions.provider_id", "payment_collection.payment_sessions.status",
+  "payment_collection.payment_sessions.amount", "payment_collection.payment_sessions.currency_code",
+  "payment_collection.payment_sessions.data",
 ];
 
 export async function getDhlCheckout(container: MedusaContainer, cartId: string) {
@@ -33,8 +40,10 @@ export async function getDhlCheckout(container: MedusaContainer, cartId: string)
   const { data } = await query.graph({
     entity: "cart", fields: CART_FIELDS, filters: { id: cartId },
   });
-  const cart = data[0] as DhlCart | undefined;
+  const cart = data[0] as (DhlCart & ReviewCart) | undefined;
   if (!cart) throw new MedusaError(MedusaError.Types.NOT_FOUND, "No se encontró el carrito.");
+  const review = await getReviewShippingCheckout(container, cart);
+  if (review) return {cart, ...review};
   let quote = quoteDhl(readDhlPolicy(), cart);
   let shippingOption: Record<string, unknown> | null = null;
   if (quote.status === "available") {
@@ -60,7 +69,7 @@ export async function getDhlCheckout(container: MedusaContainer, cartId: string)
   return { cart, quote, shippingOption };
 }
 
-export function requireAvailableDhl(quote: DhlQuote) {
+export function requireAvailableDhl(quote: DhlQuote | ReviewShippingQuote) {
   if (quote.status !== "available") {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, quote.message);
   }
@@ -78,12 +87,20 @@ export async function requireSelectedDhl(container: MedusaContainer, cartId: str
   return state;
 }
 
-export async function requireDhlPayment(container: MedusaContainer, cartId: string) {
+export async function requireDhlPayment(container: MedusaContainer, cartId: string, completing = false) {
   const state = await requireSelectedDhl(container, cartId);
   const address = state.cart.shipping_address as Record<string, unknown> | null | undefined;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.cart.email ?? "") ||
       !address || ["first_name", "last_name", "address_1", "city", "province", "phone"].some(key => typeof address[key] !== "string" || !(address[key] as string).trim())) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Completa tu correo, teléfono y dirección de entrega antes de pagar.");
+  }
+  if ("mode" in state.quote && state.quote.mode === "review") {
+    try {
+      assertReviewTotal(state.cart);
+      if (completing) await verifyReviewShippingPayment(state.cart);
+    } catch (error) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, (error as Error).message);
+    }
   }
   const collection = state.cart.payment_collection;
   if (!collection || Number(collection.amount) !== Number(state.cart.total) ||

@@ -1,3 +1,4 @@
+import { blockReviewExternalEffects } from "../lib/review-external-effects"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { WHATSAPP_MODULE } from "../modules/whatsapp"
@@ -7,6 +8,7 @@ export default async function whatsappFulfillment({
   event,
   container,
 }: SubscriberArgs<{ id: string; order_id: string }>) {
+  if (blockReviewExternalEffects(process.env)) return
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
     error: (...args: any[]) => void

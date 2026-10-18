@@ -182,7 +182,7 @@ export function quoteDhl(
   };
 }
 
-export function assertSelectedDhl(cart: DhlCart, quote: DhlQuote): void {
+export function assertSelectedDhl(cart: DhlCart, quote: DhlQuote | { status: "available"; shipping_option_id: string; amount: number }): void {
   if (quote.status !== "available") throw new Error(quote.message);
   const methods = cart.shipping_methods ?? [];
   if (methods.length !== 1 || methods[0].shipping_option_id !== quote.shipping_option_id ||

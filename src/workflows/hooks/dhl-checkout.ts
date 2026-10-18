@@ -9,12 +9,12 @@ addShippingMethodToCartWorkflow.hooks.validate(async ({ input }, { container }) 
   if (input.options.length !== 1 || input.options[0].id !== available.shipping_option_id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Selecciona el servicio DHL verificado. El envío local de $40 se coordina por WhatsApp."
+      "mode" in available && available.mode === "review" ? "Selecciona el envío de prueba antes de continuar." : "Selecciona el servicio DHL verificado. El envío local de $40 se coordina por WhatsApp."
     );
   }
 });
 
 completeCartWorkflow.hooks.validate(async ({ input }, { container }) => {
   // A previously saved $49 method, stale price or changed address cannot pass.
-  await requireDhlPayment(container, input.id);
+  await requireDhlPayment(container, input.id, true);
 });
