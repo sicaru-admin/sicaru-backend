@@ -23,5 +23,22 @@
     "standard_2_5": null,
     "remote_1_2": null,
     "remote_2_5": null
+  },
+  "commercialApproval": {
+    "source": "Confirmación escrita de SICARÚ, 2026-10-18",
+    "provisional": true,
+    "carrierContractActivated": false,
+    "ratesMxn": {
+      "oneToTwoKg": 214,
+      "overTwoToFiveKg": 270,
+      "validatedExtendedAreaSurcharge": 118
+    },
+    "unapprovedWeightBands": [
+      "below 1 kg",
+      "above 5 kg"
+    ],
+    "measuredWeightsLoaded": false,
+    "packagingConfirmed": false,
+    "extendedAreaSource": null
   }
 }
