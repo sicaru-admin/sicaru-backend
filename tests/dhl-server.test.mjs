@@ -138,7 +138,7 @@ test("a verified DHL cart can proceed to the payment route without creating a pa
 });
 test("changing to a destination without verified coverage invalidates a saved DHL method", async () => {
   state.cart.shipping_address.postal_code = "01001";
-  await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /cobertura/);
+  await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /Necesitamos cotizar el envío/);
 });
 test("Medusa price, tax or eligibility mismatches cannot be paid", async () => {
   for (const edit of [{ amount: 49 }, { amount: 0 }, { is_tax_inclusive: false }, { price_type: "calculated" }]) {

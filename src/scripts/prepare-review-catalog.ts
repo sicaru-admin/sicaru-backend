@@ -47,10 +47,17 @@ export default async function prepareReviewCatalog({container}:ExecArgs) {
       metadata:{sicaru_review_fixture:REVIEW_COMBO.version,stock_kind:"fictitious_test_only",source:REVIEW_COMBO.source,components:"1 tinte 90 ml + 1 peróxido 20 vol 140 ml"}
     }]}});
   }
-  // Store monetary amounts remain unchanged. Region-specific preference corrects
-  // the erroneous extra 16% and does not touch other regions or tax rates.
-  const preferences=await pricing.listPricePreferences({attribute:"region_id",value:REVIEW_COMBO.regionId});
-  if(preferences.length!==1) throw new Error("Review region price preference is ambiguous.");
-  if(!preferences[0].is_tax_inclusive) await pricing.updatePricePreferences(preferences[0].id,{is_tax_inclusive:true});
+  // Medusa uses the currency preference for ordinary currency-only prices.
+  // A region preference applies only to prices with a matching region price rule.
+  // Change preferences in this isolated database; preserve every price amount and tax rate.
+  for (const target of [
+    {attribute:"region_id",value:REVIEW_COMBO.regionId},
+    {attribute:"currency_code",value:"mxn"},
+  ]) {
+    const preferences=await pricing.listPricePreferences(target);
+    if(preferences.length>1) throw new Error("Review price preference is ambiguous.");
+    if(!preferences.length) await pricing.createPricePreferences({...target,is_tax_inclusive:true});
+    else if(!preferences[0].is_tax_inclusive) await pricing.updatePricePreferences(preferences[0].id,{is_tax_inclusive:true});
+  }
   logger.info("SICARU_REVIEW_CATALOG "+JSON.stringify({version:REVIEW_COMBO.version,combo:REVIEW_COMBO.handle,amount:97,tax_inclusive:true,existing_price_amounts_changed:false,existing_inventory_changed:false,test_component_quantities:[3,3,6],restock_on_restart:false}));
 }

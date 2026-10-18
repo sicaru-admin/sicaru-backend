@@ -9,6 +9,7 @@ export type DhlPolicy = {
   revision: string;
   terms: Evidence & {
     accountConfirmed: boolean;
+    pricingMode?: "negotiated_account" | "provisional_manual";
     serviceCode: string;
     originPostalCode: string;
     validUntil: string;
@@ -54,15 +55,15 @@ export type DhlCart = {
 };
 
 const MESSAGES: Record<string, string> = {
-  tariff_unconfirmed: "Confirma tu envío DHL por WhatsApp antes de pagar.",
-  weight_unknown: "Necesitamos confirmar el peso de tus productos para cotizar DHL.",
-  packaging_unknown: "Necesitamos confirmar el peso y las medidas del paquete para cotizar DHL.",
-  volumetric_unknown: "Necesitamos confirmar el peso facturable del paquete con DHL.",
-  below_1kg: "Los paquetes de menos de 1 kg requieren cotización por WhatsApp.",
-  above_5kg: "Los paquetes de más de 5 kg requieren cotización por WhatsApp.",
-  coverage_unknown: "Necesitamos confirmar la cobertura y si tu dirección tiene recargo de zona remota.",
-  no_coverage: "Consulta por WhatsApp las opciones disponibles para tu dirección.",
-  service_unconfigured: "Consulta tu cotización DHL por WhatsApp antes de pagar.",
+  tariff_unconfirmed: "Necesitamos cotizar el envío a esta dirección",
+  weight_unknown: "Necesitamos cotizar el envío a esta dirección",
+  packaging_unknown: "Necesitamos cotizar el envío a esta dirección",
+  volumetric_unknown: "Necesitamos cotizar el envío a esta dirección",
+  below_1kg: "Necesitamos cotizar el envío a esta dirección",
+  above_5kg: "Necesitamos cotizar el envío a esta dirección",
+  coverage_unknown: "Necesitamos cotizar el envío a esta dirección",
+  no_coverage: "El servicio de paquetería no tiene cobertura para esta dirección.",
+  service_unconfigured: "Necesitamos cotizar el envío a esta dirección",
 };
 
 export type DhlQuote =
@@ -113,7 +114,7 @@ export function quoteDhl(
   const terms = policy?.terms;
   if (
     policy?.enabled !== true || policy.schemaVersion !== 1 || !policy.revision ||
-    terms?.accountConfirmed !== true || !current(terms, now) ||
+    (terms?.accountConfirmed !== true && terms?.pricingMode !== "provisional_manual") || !current(terms, now) ||
     terms.taxInclusive !== true || terms.allSurchargesConfirmed !== true ||
     !terms.serviceCode?.trim() || !/^\d{5}$/.test(terms.originPostalCode ?? "") ||
     !Number.isSafeInteger(terms.roundingIncrementGrams) || terms.roundingIncrementGrams <= 0
@@ -188,6 +189,6 @@ export function assertSelectedDhl(cart: DhlCart, quote: DhlQuote): void {
       Number(methods[0].amount) !== quote.amount || methods[0].is_tax_inclusive !== true ||
       Number(cart.shipping_total) !== quote.amount ||
       !Number.isFinite(Number(cart.total)) || Number(cart.total) < quote.amount) {
-    throw new Error("Actualiza tu envío DHL y revisa el total antes de pagar. El envío local se coordina por WhatsApp.");
+    throw new Error("Actualiza el envío y revisa el resumen antes de pagar.");
   }
 }

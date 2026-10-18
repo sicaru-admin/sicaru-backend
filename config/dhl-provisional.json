@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "enabled": false,
-  "revision": "dhl-provisional-review-1",
+  "revision": "dhl-provisional-manual-review-2",
   "terms": {
     "accountConfirmed": false,
     "serviceCode": null,
@@ -13,7 +13,8 @@
     "allSurchargesConfirmed": false,
     "volumetricMode": null,
     "volumetricDivisor": null,
-    "roundingIncrementGrams": null
+    "roundingIncrementGrams": null,
+    "pricingMode": "provisional_manual"
   },
   "variants": {},
   "packages": {},
