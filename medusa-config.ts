@@ -21,6 +21,22 @@ const disableAdmin =
   process.env.DISABLE_ADMIN === "true" ||
   (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN !== "true")
 
+// Only the isolated review environment may accept these exact Preview origins.
+// Preserve the existing STORE_CORS value, including any other approved origins.
+const isPreviewPayments =
+  process.env.RAILWAY_ENVIRONMENT_ID === "a04c43a9-03ec-44ff-8486-f64524c1cc8f"
+const storeCors = isPreviewPayments
+  ? [
+      process.env.STORE_CORS,
+      "https://sicaru-6sdncskmy-sicaru-admins-projects.vercel.app",
+      "https://sicaru-git-codex-dhl-provisional-sicaru-admins-projects.vercel.app",
+    ].filter(Boolean).join(",")
+  : process.env.STORE_CORS
+
+if (isPreviewPayments) {
+  console.info("[SICARU review] Exact Preview origins appended to STORE_CORS")
+}
+
 module.exports = defineConfig({
   admin: {
     disable: disableAdmin,
@@ -69,7 +85,7 @@ module.exports = defineConfig({
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL,
     http: {
-      storeCors: process.env.STORE_CORS!,
+      storeCors: storeCors!,
       adminCors: process.env.ADMIN_CORS!,
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",

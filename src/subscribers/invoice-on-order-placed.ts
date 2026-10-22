@@ -1,12 +1,10 @@
+import { buildOrderInvoiceItems, INVOICE_ORDER_FIELDS } from "../lib/order-invoice"
+import { blockReviewExternalEffects } from "../lib/review-external-effects"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { FACTURAPI_MODULE } from "../modules/facturapi"
 import {
-  SAT_PRODUCT_KEY,
-  SAT_UNIT_KEY,
-  SAT_UNIT_NAME,
   SAT_PAYMENT_METHOD,
-  SAT_IVA_RATE,
   SAT_CURRENCY,
   mapPaymentToSATForm,
 } from "../modules/facturapi/types"
@@ -15,6 +13,7 @@ export default async function invoiceOnOrderPlaced({
   event,
   container,
 }: SubscriberArgs<{ id: string }>) {
+  if (blockReviewExternalEffects(process.env)) return
   const orderId = event.data.id
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
@@ -32,7 +31,7 @@ export default async function invoiceOnOrderPlaced({
         "id",
         "customer_id",
         "metadata",
-        "items.*",
+        ...INVOICE_ORDER_FIELDS,
         "payment_collections.*",
         "payment_collections.payments.*",
       ],
@@ -58,6 +57,9 @@ export default async function invoiceOnOrderPlaced({
       logger.error(`[Facturapi] Order ${orderId}: no customer_id, skipping`)
       return
     }
+
+    // Reconcile MXN and IVA before any external customer or CFDI creation.
+    const items = buildOrderInvoiceItems(order)
 
     // 3. Fetch customer fiscal data via link
     const { data: customers } = await query.graph({
@@ -100,17 +102,6 @@ export default async function invoiceOnOrderPlaced({
       paymentData.payment_method_id,
       paymentData.payment_type_id
     )
-
-    // 6. Build CFDI line items
-    const items = (order.items || []).map((item: any) => ({
-      description: item.title || "Producto",
-      quantity: item.quantity,
-      price: Number(item.unit_price) / 100, // centavos → MXN
-      product_key: SAT_PRODUCT_KEY,
-      unit_key: SAT_UNIT_KEY,
-      unit_name: SAT_UNIT_NAME,
-      taxes: [{ type: "IVA", rate: SAT_IVA_RATE }],
-    }))
 
     // 7. Create CFDI in FacturAPI (stamps with SAT)
     const facturapiInvoice = await facturapi.createCFDI({

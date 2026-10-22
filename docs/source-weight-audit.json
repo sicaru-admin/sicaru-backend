@@ -1,0 +1,24 @@
+{
+  "source_repository": "sicaru-admin/sicaru-backend",
+  "source_commit": "895a5a09f84b7309905eb7f07f1d0cdf42f8ed00",
+  "source_path": "data/voglia-catalog-master-final.csv",
+  "source_blob": "93444f80f8433bdc3175b9d6744d910423bc45ce",
+  "rows": 24,
+  "missing_weight_g": 24,
+  "missing_dimensions": 24,
+  "csv_units": {
+    "weight": "g",
+    "dimensions": "cm"
+  },
+  "importer_assigns_weight_or_dimensions": false,
+  "live_medusa_inspected": false,
+  "live_blockers": [
+    "HTTP proxy proxy:8080 unreachable",
+    "No administrative Medusa or database execution identity configured; Railway OAuth exposes variable names only"
+  ],
+  "notes": [
+    "ml presentation is not parcel weight",
+    "Demo seed weights of 400 have no measurement evidence",
+    "CSV and source code evidence do not establish live database values"
+  ]
+}

@@ -1,3 +1,5 @@
+import { blockReviewExternalEffects } from "../../../../../lib/review-external-effects"
+import { buildOrderInvoiceItems, INVOICE_ORDER_FIELDS } from "../../../../../lib/order-invoice"
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
@@ -5,11 +7,7 @@ import type {
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { FACTURAPI_MODULE } from "../../../../../modules/facturapi"
 import {
-  SAT_PRODUCT_KEY,
-  SAT_UNIT_KEY,
-  SAT_UNIT_NAME,
   SAT_PAYMENT_METHOD,
-  SAT_IVA_RATE,
   SAT_CURRENCY,
   mapPaymentToSATForm,
 } from "../../../../../modules/facturapi/types"
@@ -56,6 +54,10 @@ export async function POST(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
+  if (blockReviewExternalEffects(process.env)) {
+    res.status(403).json({ message: "La emisión de facturas está desactivada en el entorno de pruebas." })
+    return
+  }
   const orderId = req.params.id
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const facturapi = req.scope.resolve(FACTURAPI_MODULE)
@@ -80,7 +82,7 @@ export async function POST(
       "id",
       "customer_id",
       "metadata",
-      "items.*",
+      ...INVOICE_ORDER_FIELDS,
       "payment_collections.*",
       "payment_collections.payments.*",
     ],
@@ -90,6 +92,14 @@ export async function POST(
   const order = orders?.[0]
   if (!order || !order.customer_id) {
     res.status(404).json({ message: "Pedido no encontrado" })
+    return
+  }
+
+  let items
+  try {
+    items = buildOrderInvoiceItems(order)
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message })
     return
   }
 
@@ -135,17 +145,6 @@ export async function POST(
     paymentData.payment_method_id,
     paymentData.payment_type_id
   )
-
-  // Build CFDI line items
-  const items = (order.items || []).map((item: any) => ({
-    description: item.title || "Producto",
-    quantity: item.quantity,
-    price: Number(item.unit_price) / 100, // centavos → MXN
-    product_key: SAT_PRODUCT_KEY,
-    unit_key: SAT_UNIT_KEY,
-    unit_name: SAT_UNIT_NAME,
-    taxes: [{ type: "IVA", rate: SAT_IVA_RATE }],
-  }))
 
   // Create CFDI in FacturAPI
   const facturapiInvoice = await facturapi.createCFDI({

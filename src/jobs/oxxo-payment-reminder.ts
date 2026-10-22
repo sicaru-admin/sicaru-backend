@@ -1,9 +1,11 @@
+import { blockReviewExternalEffects } from "../lib/review-external-effects"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { WHATSAPP_MODULE } from "../modules/whatsapp"
 import { TEMPLATE_OXXO_REMINDER } from "../modules/whatsapp/types"
 
 export default async function oxxoPaymentReminder(container: MedusaContainer) {
+  if (blockReviewExternalEffects(process.env)) return
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
     error: (...args: any[]) => void
