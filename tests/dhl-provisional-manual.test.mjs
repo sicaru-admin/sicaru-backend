@@ -2,9 +2,16 @@ import assert from "node:assert/strict";
 import {test} from "node:test";
 import {quoteDhl} from "../src/lib/dhl-policy.ts";
 import {fixture} from "./dhl-fixtures.mjs";
-test("a provisional manual tariff does not require activating a carrier account, but still requires all physical and coverage evidence",()=>{
-  const {policy,cart,now}=fixture(1000);policy.terms.accountConfirmed=false;
-  assert.equal(quoteDhl(policy,cart,now).reason,"tariff_unconfirmed");
-  policy.terms.pricingMode="provisional_manual";assert.equal(quoteDhl(policy,cart,now).amount,214);assert.equal(policy.terms.accountConfirmed,false);
-  delete policy.variants.variant_test;assert.equal(quoteDhl(policy,cart,now).reason,"weight_unknown");
+test("provisional manual rates stay unpayable even with physical and coverage evidence", () => {
+  for (const accountConfirmed of [false, true]) {
+    const { policy, cart, now } = fixture(1000);
+    policy.terms.accountConfirmed = accountConfirmed;
+    policy.terms.pricingMode = "provisional_manual";
+    policy.commercialApproval.ratesMxn = {
+      oneToTwoKg: 214, overTwoToFiveKg: 270, validatedExtendedAreaSurcharge: 118,
+    };
+    assert.deepEqual(quoteDhl(policy, cart, now), {
+      status: "quote_required", reason: "tariff_unconfirmed", message: "Envío por cotizar",
+    });
+  }
 });

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "enabled": false,
-  "revision": "dhl-provisional-manual-review-2",
+  "revision": "parcel-only-awaiting-approved-quote-2026-10-21",
   "terms": {
     "accountConfirmed": false,
     "serviceCode": null,
@@ -14,7 +14,7 @@
     "volumetricMode": null,
     "volumetricDivisor": null,
     "roundingIncrementGrams": null,
-    "pricingMode": "provisional_manual"
+    "pricingMode": "negotiated_account"
   },
   "variants": {},
   "packages": {},
@@ -26,18 +26,19 @@
     "remote_2_5": null
   },
   "commercialApproval": {
-    "source": "Confirmación escrita de SICARÚ, 2026-10-18",
+    "status": "pending",
+    "source": null,
+    "verifiedAt": null,
+    "validUntil": null,
     "provisional": true,
     "carrierContractActivated": false,
-    "ratesMxn": {
+    "ratesMxn": null,
+    "unapprovedReferenceRatesMxn": {
       "oneToTwoKg": 214,
       "overTwoToFiveKg": 270,
       "validatedExtendedAreaSurcharge": 118
     },
-    "unapprovedWeightBands": [
-      "below 1 kg",
-      "above 5 kg"
-    ],
+    "referenceOnly": true,
     "measuredWeightsLoaded": false,
     "packagingConfirmed": false,
     "extendedAreaSource": null

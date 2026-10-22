@@ -6,10 +6,12 @@ import { getDhlCheckout, requireAvailableDhl, requireDhlPayment } from "../../li
 addShippingMethodToCartWorkflow.hooks.validate(async ({ input }, { container }) => {
   const { quote } = await getDhlCheckout(container, input.cart_id);
   const available = requireAvailableDhl(quote);
-  if (input.options.length !== 1 || input.options[0].id !== available.shipping_option_id) {
+  const selected = input.options?.[0];
+  if (input.options?.length !== 1 || selected?.id !== available.shipping_option_id ||
+      selected.data?.sicaru_quote_id !== available.quote_id || selected.data?.sicaru_quote_fingerprint !== available.fingerprint) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "mode" in available && available.mode === "review" ? "Selecciona el envío de prueba antes de continuar." : "Selecciona el servicio DHL verificado. El envío local de $40 se coordina por WhatsApp."
+      "Selecciona el servicio DHL verificado con la cotización vigente antes de continuar."
     );
   }
 });

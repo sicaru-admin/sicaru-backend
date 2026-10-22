@@ -49,7 +49,7 @@ const hook = registerHooks({
   },
 });
 const { getDhlCheckout, readDhlPolicy } = await import("../src/lib/dhl-checkout.ts");
-const { guardDhlPayment } = await import("../src/api/middlewares.ts");
+const { guardDhlPayment, guardDhlCollection } = await import("../src/api/middlewares.ts");
 const { GET } = await import("../src/api/store/carts/[id]/dhl-quote/route.ts");
 const { default: prepareOptions } = await import("../src/scripts/prepare-dhl-options.ts");
 const { default: auditMedusa } = await import("../src/scripts/audit-dhl-readiness.ts");
@@ -64,11 +64,11 @@ function savePolicy() {
 }
 beforeEach(() => {
   state = fixture();
-  state.cart.payment_collection = { amount: 514, currency_code: "mxn" };
+  state.cart.payment_collection = { amount: 487.65, currency_code: "mxn", payment_sessions: [{provider_id:"pp_mercadopago_mercadopago",amount:487.65,currency_code:"mxn"}] };
   savePolicy();
   options = [{
     id: "dhl_small_test", name: "DHL 1–2 kg", provider_id: "manual_manual",
-    price_type: "flat", amount: 214, is_tax_inclusive: true,
+    price_type: "flat", amount: 187.65, is_tax_inclusive: true,
   }, {
     id: "local_old", name: "Envío Cadereyta", provider_id: "manual_manual",
     price_type: "flat", amount: 49, is_tax_inclusive: true,
@@ -85,7 +85,7 @@ after(() => {
 
 test("Medusa's eligible option and price must match the verified DHL rule", async () => {
   const result = await getDhlCheckout(container, "cart_test");
-  assert.equal(result.quote.amount, 214);
+  assert.equal(result.quote.amount, 187.65);
   assert.equal(result.shippingOption.id, "dhl_small_test");
   assert.equal(listingCalls, 1);
 });
@@ -124,12 +124,12 @@ test("an old saved $49 option cannot complete a cart through the workflow", asyn
 test("an invalid local method is rejected before the payment route runs", async () => {
   state.cart.shipping_methods[0].shipping_option_id = "local_old";
   let routeError;
-  await guardDhlPayment({ scope: container, params: { id: "collection_test" } }, {}, (error) => { routeError = error; });
+  await guardDhlPayment({ scope: container, params: { id: "collection_test" }, body:{provider_id:"pp_mercadopago_mercadopago"} }, {}, (error) => { routeError = error; });
   assert.match(routeError.message, /Actualiza/);
 });
 test("a verified DHL cart can proceed to the payment route without creating a payment in the test", async () => {
   let called = false;
-  await guardDhlPayment({ scope: container, params: { id: "collection_test" } }, {}, (error) => {
+  await guardDhlPayment({ scope: container, params: { id: "collection_test" }, body:{provider_id:"pp_mercadopago_mercadopago"} }, {}, (error) => {
     assert.equal(error, undefined);
     called = true;
   });
@@ -138,7 +138,7 @@ test("a verified DHL cart can proceed to the payment route without creating a pa
 });
 test("changing to a destination without verified coverage invalidates a saved DHL method", async () => {
   state.cart.shipping_address.postal_code = "01001";
-  await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /Necesitamos cotizar el envío/);
+  await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /Envío por cotizar/);
 });
 test("Medusa price, tax or eligibility mismatches cannot be paid", async () => {
   for (const edit of [{ amount: 49 }, { amount: 0 }, { is_tax_inclusive: false }, { price_type: "calculated" }]) {
@@ -153,11 +153,11 @@ test("Medusa price, tax or eligibility mismatches cannot be paid", async () => {
 test("a misconfigured local ID is rejected even if it is assigned the DHL amount", async () => {
   state.policy.optionIds.standard_1_2 = "local_old";
   savePolicy();
-  options[1].amount = 214;
+  options[1].amount = 187.65;
   assert.equal((await getDhlCheckout(container, "cart_test")).quote.status, "quote_required");
 });
 test("wrong total, extra shipping tax and shipping discounts block payment", async () => {
-  for (const amount of [0, 49, 248.24]) {
+  for (const amount of [0, 49, 217.674]) {
     state.cart.shipping_total = amount;
     await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /Actualiza/);
   }
@@ -166,7 +166,7 @@ test("an unlinked or ambiguous payment collection cannot start payment", async (
   for (const data of [[], [{ cart_id: "a" }, { cart_id: "b" }]]) {
     links = data;
     let routeError;
-    await guardDhlPayment({ scope: container, params: { id: "collection_test" } }, {}, (error) => { routeError = error; });
+    await guardDhlPayment({ scope: container, params: { id: "collection_test" }, body:{provider_id:"pp_mercadopago_mercadopago"} }, {}, (error) => { routeError = error; });
     assert.match(routeError.message, /verificar/);
   }
 });
@@ -175,11 +175,11 @@ test("a stale payment collection cannot charge a total that omitted DHL", async 
   state.cart.payment_collection.amount = 300;
   await assert.rejects(validations.complete({ input: { id: "cart_test" } }, { container }), /importe de pago/);
   let routeError;
-  await guardDhlPayment({ scope: container, params: { id: "collection_test" } }, {}, (error) => { routeError = error; });
+  await guardDhlPayment({ scope: container, params: { id: "collection_test" }, body:{provider_id:"pp_mercadopago_mercadopago"} }, {}, (error) => { routeError = error; });
   assert.match(routeError.message, /importe de pago/);
 });
 
-test("the configuration proposal is read-only, disabled and uses the four approved amounts", async () => {
+test("the configuration proposal is read-only, disabled and never supplies provisional prices", async () => {
   const log = console.log;
   let plan;
   try {
@@ -189,7 +189,8 @@ test("the configuration proposal is read-only, disabled and uses the four approv
     console.log = log;
   }
   assert.equal(plan.apply, false);
-  assert.deepEqual(plan.options.map((o) => o.prices[0].amount), [214, 270, 332, 388]);
+  assert.deepEqual(plan.options.map((o) => o.prices), [[], [], [], []]);
+  assert.equal(plan.activation,"blocked_pending_commercial_approval");
   assert.equal(plan.options.every((o) => o.rules[0].value === "false"), true);
   assert.equal(plan.options.every((o) => o.service_zone_id === null && o.shipping_profile_id === null), true);
   assert.equal(listingCalls, 0);
@@ -222,8 +223,10 @@ test("missing contact or an incomplete address cannot complete or initiate payme
   await assert.rejects(validations.complete({input:{id:"cart_test"}}, {container}), /correo/);
   state.cart.email = "review@example.invalid";
   delete state.cart.shipping_address.address_1;
+  const { quote } = await getDhlCheckout(container,"cart_test");
+  state.cart.shipping_methods[0].data = {sicaru_quote_id:quote.quote_id,sicaru_quote_fingerprint:quote.fingerprint};
   let routeError;
-  await guardDhlPayment({scope:container,params:{id:"collection_test"}},{}, error=>{routeError=error});
+  await guardDhlPayment({scope:container,params:{id:"collection_test"},body:{provider_id:"pp_mercadopago_mercadopago"}},{}, error=>{routeError=error});
   assert.match(routeError.message,/dirección/);
 });
 
@@ -239,4 +242,29 @@ test("the production start layout reads the disabled root policy without enablin
   } finally {
     process.chdir(previousCwd); process.env.DHL_POLICY_FILE = join(directory, "policy.json");
   }
+});
+
+
+test("creating a payment collection requires a current quote and never accepts local saved methods", async () => {
+  for (const amount of [0,40,49]) {
+    state.cart.shipping_methods[0].amount=amount; state.cart.shipping_total=amount;
+    let error; await guardDhlCollection({scope:container,body:{cart_id:"cart_test"}},{},e=>{error=e;});
+    assert.match(error.message,/Actualiza/);
+  }
+});
+test("quote identity is required when selecting a shipping option and is persisted by the manual provider", async () => {
+  await assert.rejects(validations.add({input:{cart_id:"cart_test",options:[{id:"dhl_small_test"}]}},{container}),/cotización vigente/);
+  const {quote}=await getDhlCheckout(container,"cart_test");
+  await validations.add({input:{cart_id:"cart_test",options:[{id:quote.shipping_option_id,data:{sicaru_quote_id:quote.quote_id,sicaru_quote_fingerprint:quote.fingerprint}}]}},{container});
+});
+test("the system payment provider cannot bypass the online Mercado Pago guard", async () => {
+  let error; await guardDhlPayment({scope:container,params:{id:"collection_test"},body:{provider_id:"pp_system_default"}},{},e=>{error=e;});
+  assert.match(error.message,/Mercado Pago/);
+  state.cart.payment_collection.payment_sessions[0].provider_id="pp_system_default";
+  await assert.rejects(validations.complete({input:{id:"cart_test"}},{container}),/Actualiza el pago/);
+});
+test("a changed quantity or address cannot retain a previously saved quote fingerprint", async () => {
+  state.cart.shipping_address.address_1="Otra dirección dentro del mismo CP";
+  let error; await guardDhlPayment({scope:container,params:{id:"collection_test"},body:{provider_id:"pp_mercadopago_mercadopago"}},{},e=>{error=e;});
+  assert.match(error.message,/Actualiza/);
 });

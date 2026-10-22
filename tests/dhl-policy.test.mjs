@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { quoteDhl, assertSelectedDhl, cartSignature } from "../src/lib/dhl-policy.ts";
 import { fixture } from "./dhl-fixtures.mjs";
 
-for (const [grams, expected] of [[1000, 214], [1999, 214], [2000, 214], [2001, 270], [4999, 270], [5000, 270]]) {
+for (const [grams, expected] of [[1000, 187.65], [1999, 187.65], [2000, 187.65], [2001, 249.9], [4999, 249.9], [5000, 249.9]]) {
   test(`confirmed billable weight ${grams} g costs ${expected} MXN`, () => {
     const { policy, cart, now } = fixture(grams);
     const quote = quoteDhl(policy, cart, now);
@@ -42,7 +42,7 @@ test("weight must include the primary container and have real evidence", () => {
 test("packaging tare is included and an unverified package blocks checkout", () => {
   const { policy, cart, now } = fixture(2000);
   policy.packages["variant_test:1"].tareGrams = 101;
-  assert.equal(quoteDhl(policy, cart, now).amount, 270);
+  assert.equal(quoteDhl(policy, cart, now).amount, 249.9);
   delete policy.packages["variant_test:1"];
   assert.equal(quoteDhl(policy, cart, now).reason, "packaging_unknown");
 });
@@ -51,7 +51,7 @@ test("quantities are multiplied and a changed basket needs checked packaging", (
   cart.items[0].quantity = 2;
   assert.equal(quoteDhl(policy, cart, now).reason, "packaging_unknown");
   policy.packages["variant_test:2"] = policy.packages["variant_test:1"];
-  assert.equal(quoteDhl(policy, cart, now).amount, 270);
+  assert.equal(quoteDhl(policy, cart, now).amount, 249.9);
   assert.equal(quoteDhl(policy, cart, now).actual_weight_g, 2100);
 });
 test("packing signatures aggregate duplicate variants and ignore item order", () => {
@@ -73,7 +73,7 @@ test("volumetric applicability and divisor are never assumed", () => {
   policy.terms.volumetricDivisor = 6000; // Test-only contract, not a DHL default.
   const quote = quoteDhl(policy, cart, now);
   assert.equal(quote.billable_weight_g, 4500);
-  assert.equal(quote.amount, 270);
+  assert.equal(quote.amount, 249.9);
 });
 test("volumetric weight over 5kg requires a WhatsApp quote", () => {
   const { policy, cart, now } = fixture();
@@ -94,13 +94,13 @@ test("a sub-1kg package is not rounded up into an unapproved minimum", () => {
   policy.terms.roundingIncrementGrams = 1000;
   assert.equal(quoteDhl(policy, cart, now).reason, "below_1kg");
 });
-for (const [grams, expected] of [[1000, 332], [5000, 388]]) {
-  test(`verified remote destination at ${grams} g adds exactly 118 MXN`, () => {
+for (const [grams, expected] of [[1000, 251.05], [5000, 313.3]]) {
+  test(`verified remote destination at ${grams} g adds exactly 63.4 MXN`, () => {
     const { policy, cart, now } = fixture(grams);
     policy.coverage["01000"].remoteArea = true;
     const quote = quoteDhl(policy, cart, now);
     assert.equal(quote.amount, expected);
-    assert.equal(quote.remote_surcharge, 118);
+    assert.equal(quote.remote_surcharge, 63.4);
   });
 }
 test("unknown remote status does not silently apply or omit a surcharge", () => {
@@ -163,9 +163,51 @@ test("the total includes DHL without altering product prices", () => {
   const before = structuredClone(cart);
   const quote = quoteDhl(policy, cart, now);
   assert.doesNotThrow(() => assertSelectedDhl(cart, quote));
-  assert.equal(cart.total, 300 + 214);
+  assert.equal(cart.total, 300 + 187.65);
   assert.deepEqual(cart, before);
-  for (const edit of [{ shipping_total: 0 }, { shipping_total: 248.24 }, { total: 200 }]) {
+  for (const edit of [{ shipping_total: 0 }, { shipping_total: 217.674 }, { total: 200 }]) {
     assert.throws(() => assertSelectedDhl({ ...cart, ...edit }, quote), /Actualiza/);
   }
+});
+
+test("provisional mode, unapproved rates and the old approval document cannot open checkout", () => {
+  for (const mutate of [
+    p => p.terms.pricingMode = "provisional_manual",
+    p => delete p.commercialApproval,
+    p => p.commercialApproval.status = "pending",
+    p => p.commercialApproval.provisional = true,
+    p => p.commercialApproval.carrierContractActivated = false,
+    p => p.commercialApproval.source = "",
+    p => p.commercialApproval.validUntil = "2020-01-01T00:00:00Z",
+    p => p.commercialApproval.ratesMxn = null,
+    p => p.commercialApproval.ratesMxn.oneToTwoKg = 0,
+    p => p.commercialApproval.ratesMxn.oneToTwoKg = 187.651,
+    p => p.commercialApproval.ratesMxn.oneToTwoKg = NaN,
+  ]) {
+    const {policy,cart,now} = fixture(); mutate(policy);
+    const quote = quoteDhl(policy,cart,now);
+    assert.equal(quote.status,"quote_required");
+    assert.equal(quote.message,"Envío por cotizar");
+    assert.equal("amount" in quote,false);
+  }
+});
+test("quote binding is stable for the same snapshot and invalidates quantities or any delivery-address change", () => {
+  const {policy,cart,now} = fixture();
+  const first=quoteDhl(policy,cart,now), repeated=quoteDhl(policy,cart,now+100);
+  assert.equal(first.quote_id,repeated.quote_id);
+  assert.equal(first.fingerprint,repeated.fingerprint);
+  cart.shipping_address.address_1="Otra calle";
+  const changed=quoteDhl(policy,cart,now);
+  assert.notEqual(first.quote_id,changed.quote_id);
+  assert.throws(()=>assertSelectedDhl(cart,changed),/Actualiza/);
+  assert.throws(()=>assertSelectedDhl(cart,{...changed,expires_at:"2020-01-01T00:00:00Z"}),/Actualiza/);
+});
+test("a local/free rate, double IVA, shipping promotion or inconsistent merchandise total cannot be paid", () => {
+  const {policy,cart,now}=fixture(); const quote=quoteDhl(policy,cart,now);
+  for(const edit of [
+    {shipping_total:0}, {shipping_total:40}, {shipping_total:49},
+    {shipping_discount_total:1}, {shipping_discount_total:undefined},
+    {total:487.64}, {total:487.651}, {total:NaN}, {item_total:undefined},
+  ]) assert.throws(()=>assertSelectedDhl({...cart,...edit},quote),/Actualiza/);
+  for(const amount of [0,40,49,null,"187.65",Infinity]) assert.throws(()=>assertSelectedDhl({...cart,shipping_methods:[{...cart.shipping_methods[0],amount}]},quote),/Actualiza/);
 });

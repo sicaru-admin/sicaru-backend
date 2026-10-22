@@ -69,6 +69,7 @@ class FacturapiService extends MedusaService({
           description: item.description,
           product_key: item.product_key,
           price: item.price,
+          tax_included: item.tax_included,
           unit_key: item.unit_key,
           unit_name: item.unit_name,
           taxes: item.taxes,
