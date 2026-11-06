@@ -1,6 +1,41 @@
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { join } from 'node:path'
+import type { InputConfigModules } from '@medusajs/framework/types'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+// Temporary local storage for this isolated QA environment only.
+// Other environments retain their existing File Module behavior.
+const isStagingMediaQa =
+  process.env.RAILWAY_PROJECT_ID === "7b251006-cebd-48b3-a7a5-97b6c65d6baf" &&
+  process.env.RAILWAY_ENVIRONMENT_ID === "da5e95b1-c2fc-456b-bb75-5b71b95c8f4b" &&
+  process.env.RAILWAY_ENVIRONMENT_NAME === "staging-voglia" &&
+  process.env.RAILWAY_SERVICE_ID === "50beb418-f34d-467d-b1f2-111c725c807d"
+
+const stagingFileModules: InputConfigModules = []
+if (isStagingMediaQa) {
+  const backendUrl = new URL(process.env.MEDUSA_BACKEND_URL || "")
+  if (
+    backendUrl.protocol !== "https:" ||
+    backendUrl.username || backendUrl.password ||
+    backendUrl.pathname !== "/" || backendUrl.search || backendUrl.hash
+  ) {
+    throw new Error("Staging media QA requires an HTTPS MEDUSA_BACKEND_URL origin")
+  }
+  stagingFileModules.push({
+    resolve: "@medusajs/medusa/file",
+    options: {
+      providers: [{
+        resolve: "@medusajs/medusa/file-local",
+        id: "local",
+        options: {
+          upload_dir: join(process.cwd(), "static"),
+          backend_url: `${backendUrl.origin}/static`,
+        },
+      }],
+    },
+  })
+}
 
 const paymentProviders = process.env.MERCADOPAGO_ACCESS_TOKEN
   ? [
@@ -27,6 +62,7 @@ module.exports = defineConfig({
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
   },
   modules: [
+    ...stagingFileModules,
     {
       resolve: "@medusajs/medusa/payment",
       options: {
