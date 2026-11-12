@@ -1,8 +1,7 @@
-import { CreateInventoryLevelInput, ExecArgs } from "@medusajs/framework/types";
+import { ExecArgs } from "@medusajs/framework/types";
 import {
   ContainerRegistrationKeys,
   Modules,
-  ProductStatus,
 } from "@medusajs/framework/utils";
 import {
   createWorkflow,
@@ -11,12 +10,9 @@ import {
 } from "@medusajs/framework/workflows-sdk";
 import {
   createApiKeysWorkflow,
-  createInventoryLevelsWorkflow,
   createProductCategoriesWorkflow,
-  createProductsWorkflow,
   createRegionsWorkflow,
   createSalesChannelsWorkflow,
-  createShippingOptionsWorkflow,
   createShippingProfilesWorkflow,
   createStockLocationsWorkflow,
   createTaxRegionsWorkflow,
@@ -25,6 +21,7 @@ import {
   updateStoresStep,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
+import { assertTechnicalSeedAuthorized } from "../utils/seed-safety";
 
 const updateStoreCurrencies = createWorkflow(
   "update-store-currencies-sicaru",
@@ -52,6 +49,8 @@ const updateStoreCurrencies = createWorkflow(
 );
 
 export default async function seedSicaruData({ container }: ExecArgs) {
+  assertTechnicalSeedAuthorized(process.env);
+
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const link = container.resolve(ContainerRegistrationKeys.LINK);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
@@ -60,7 +59,6 @@ export default async function seedSicaruData({ container }: ExecArgs) {
   const storeModuleService = container.resolve(Modules.STORE);
   const regionModuleService = container.resolve(Modules.REGION);
   const stockLocationModuleService = container.resolve(Modules.STOCK_LOCATION);
-  const productModuleService = container.resolve(Modules.PRODUCT);
 
   // ── 1. STORE SETUP ──────────────────────────────────────────────────
   logger.info("Seeding Distribuidora Sicarú store data...");
@@ -120,13 +118,10 @@ export default async function seedSicaruData({ container }: ExecArgs) {
   const existingRegions = await regionModuleService.listRegions({
     name: "México",
   });
-  let mexicoRegion;
-
   if (existingRegions.length) {
-    mexicoRegion = existingRegions[0];
     logger.info("Mexico region already exists, skipping.");
   } else {
-    const { result: regionResult } = await createRegionsWorkflow(container).run({
+    await createRegionsWorkflow(container).run({
       input: {
         regions: [
           {
@@ -138,7 +133,6 @@ export default async function seedSicaruData({ container }: ExecArgs) {
         ],
       },
     });
-    mexicoRegion = regionResult[0];
     logger.info("Mexico region created.");
   }
 
@@ -218,100 +212,22 @@ export default async function seedSicaruData({ container }: ExecArgs) {
     },
   });
 
-  // ── 7. SHIPPING PROFILE & FULFILLMENT ─────────────────────────────
-  logger.info("Setting up shipping and fulfillment...");
+  // ── 7. STRUCTURAL SHIPPING PROFILE ONLY ──────────────────────────
+  // Products may reference this profile; no service, rate or promise is offered.
+  logger.info("Setting up the structural shipping profile...");
   const shippingProfiles =
     await fulfillmentModuleService.listShippingProfiles({ type: "default" });
-  let shippingProfile = shippingProfiles.length ? shippingProfiles[0] : null;
-
-  if (!shippingProfile) {
-    const { result: shippingProfileResult } =
-      await createShippingProfilesWorkflow(container).run({
-        input: {
-          data: [
-            {
-              name: "Perfil de Envío Predeterminado",
-              type: "default",
-            },
-          ],
-        },
-      });
-    shippingProfile = shippingProfileResult[0];
-  }
-
-  const existingFulfillmentSets =
-    await fulfillmentModuleService.listFulfillmentSets({ name: "Envío Cadereyta" });
-  let fulfillmentSet;
-
-  if (existingFulfillmentSets.length) {
-    fulfillmentSet = existingFulfillmentSets[0];
-    logger.info("Fulfillment set already exists, skipping.");
-  } else {
-    fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-      name: "Envío Cadereyta",
-      type: "shipping",
-      service_zones: [
-        {
-          name: "México",
-          geo_zones: [
-            {
-              country_code: "mx",
-              type: "country",
-            },
-          ],
-        },
-      ],
-    });
-
-    await link.create({
-      [Modules.STOCK_LOCATION]: {
-        stock_location_id: stockLocation.id,
-      },
-      [Modules.FULFILLMENT]: {
-        fulfillment_set_id: fulfillmentSet.id,
-      },
-    });
-
-    // Shipping option: Envío Cadereyta Mismo Día — $49 MXN flat rate
-    await createShippingOptionsWorkflow(container).run({
-      input: [
-        {
-          name: "Envío Cadereyta Mismo Día",
-          price_type: "flat",
-          provider_id: "manual_manual",
-          service_zone_id: fulfillmentSet.service_zones[0].id,
-          shipping_profile_id: shippingProfile.id,
-          type: {
-            label: "Mismo Día",
-            description: "Envío el mismo día en Cadereyta y zona metropolitana. Gratis en pedidos mayores a $300 MXN.",
-            code: "mismo-dia",
+  if (!shippingProfiles.length) {
+    await createShippingProfilesWorkflow(container).run({
+      input: {
+        data: [
+          {
+            name: "Perfil de Envío Predeterminado",
+            type: "default",
           },
-          prices: [
-            {
-              currency_code: "mxn",
-              amount: 49,
-            },
-            {
-              region_id: mexicoRegion.id,
-              amount: 49,
-            },
-          ],
-          rules: [
-            {
-              attribute: "enabled_in_store",
-              value: "true",
-              operator: "eq",
-            },
-            {
-              attribute: "is_return",
-              value: "false",
-              operator: "eq",
-            },
-          ],
-        },
-      ],
+        ],
+      },
     });
-    logger.info("Shipping option created.");
   }
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({
@@ -385,278 +301,6 @@ export default async function seedSicaruData({ container }: ExecArgs) {
     }
   }
 
-  // Fetch all categories to build the lookup
-  const { data: allCategories } = await query.graph({
-    entity: "product_category",
-    fields: ["id", "name"],
-  });
-
-  const catByName = (name: string) => {
-    const cat = allCategories.find((c) => c.name === name);
-    if (!cat) throw new Error(`Category not found: ${name}`);
-    return cat.id;
-  };
-
-  logger.info(
-    `Categories: ${allCategories.map((c) => c.name).join(", ")}`
-  );
-
-  // ── 10. PRODUCTS ──────────────────────────────────────────────────
-  logger.info("Creating products...");
-  const existingProducts = await productModuleService.listProducts({});
-  const existingHandles = new Set(existingProducts.map((p) => p.handle));
-
-  const allProductDefs = [
-    {
-      title: "Küül Cure Me Reconstructor 1L",
-      handle: "kuul-cure-me-reconstructor-1l",
-      description:
-        "Tratamiento reconstructor profesional Küül Cure Me de 1 litro. Restaura fibra capilar dañada con keratina y proteínas.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Tratamientos y Mascarillas")],
-      options: [{ title: "Tamaño", values: ["1L"] }],
-      variants: [
-        {
-          title: "1L",
-          sku: "KUUL-CURE-1L",
-          options: { "Tamaño": "1L" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 389 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Voglia Tinte Permanente 90ml",
-      handle: "voglia-tinte-permanente-90ml",
-      description:
-        "Tinte permanente Voglia con pigmentos de alta cobertura. 90ml. Disponible en amplia gama de tonos.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Color y Tintes")],
-      options: [{ title: "Tamaño", values: ["90ml"] }],
-      variants: [
-        {
-          title: "90ml",
-          sku: "VOGLIA-TINTE-90ML",
-          options: { "Tamaño": "90ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 85 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Voglia All in One Keratin 250ml",
-      handle: "voglia-all-in-one-keratin-250ml",
-      description:
-        "Tratamiento leave-in sin enjuague con keratina. Ayuda a proteger el cabello del calor de plancha, secadora o tenaza; facilita el peinado y el desenredo; aporta brillo, hidratación y suavidad; controla la apariencia del frizz y deja el cabello más manejable. Ideal para cabello seco, maltratado o procesado. Según el empaque, libre de sulfatos y siliconas.",
-      status: ProductStatus.PUBLISHED,
-      thumbnail:
-        "https://sicaru-six.vercel.app/images/products/voglia-all-in-one-keratin-250ml.png",
-      images: [
-        {
-          url: "https://sicaru-six.vercel.app/images/products/voglia-all-in-one-keratin-250ml.png",
-        },
-      ],
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Tratamientos y Mascarillas")],
-      options: [{ title: "Tamaño", values: ["250ml"] }],
-      variants: [
-        {
-          title: "250ml",
-          sku: "VOGLIA-ALL-IN-ONE-250ML",
-          options: { "Tamaño": "250ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 146 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Montis Shampoo Extracto Natural",
-      handle: "montis-shampoo-extracto-natural",
-      description:
-        "Shampoo Montis con extractos naturales para cabello saludable y brillante. Libre de parabenos.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Shampoo y Acondicionador")],
-      options: [{ title: "Tamaño", values: ["500ml"] }],
-      variants: [
-        {
-          title: "500ml",
-          sku: "MONTIS-SHAMPOO-NAT",
-          options: { "Tamaño": "500ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 165 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Nekane Capilar Tratamiento Hidra Intenso",
-      handle: "nekane-tratamiento-hidra-intenso",
-      description:
-        "Tratamiento de hidratación intensiva Nekane Capilar. Nutre y repara cabello seco y maltratado.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Tratamientos y Mascarillas")],
-      options: [{ title: "Tamaño", values: ["300ml"] }],
-      variants: [
-        {
-          title: "300ml",
-          sku: "NEKANE-HIDRA-300ML",
-          options: { "Tamaño": "300ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 220 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Hidra Color Tinte Cremoso",
-      handle: "hidra-color-tinte-cremoso",
-      description:
-        "Tinte cremoso Hidra Color con fórmula hidratante. Cobertura total de canas con brillo intenso.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Color y Tintes")],
-      options: [{ title: "Tamaño", values: ["90ml"] }],
-      variants: [
-        {
-          title: "90ml",
-          sku: "HIDRA-COLOR-90ML",
-          options: { "Tamaño": "90ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 95 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Xiomara Gel Fijación Fuerte",
-      handle: "xiomara-gel-fijacion-fuerte",
-      description:
-        "Gel de fijación fuerte Xiomara para peinados duraderos. No deja residuos ni resequedad.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Styling y Acabado")],
-      options: [{ title: "Tamaño", values: ["250ml"] }],
-      variants: [
-        {
-          title: "250ml",
-          sku: "XIOMARA-GEL-250ML",
-          options: { "Tamaño": "250ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 78 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Vitale Keratina Profesional",
-      handle: "vitale-keratina-profesional",
-      description:
-        "Keratina profesional Vitale para alisado y restauración capilar. Resultados de salón en casa.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Tratamientos y Mascarillas")],
-      options: [{ title: "Tamaño", values: ["500ml"] }],
-      variants: [
-        {
-          title: "500ml",
-          sku: "VITALE-KERAT-500ML",
-          options: { "Tamaño": "500ml" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 350 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-    {
-      title: "Küül Color System Cream 3oz",
-      handle: "kuul-color-system-cream-3oz",
-      description:
-        "Crema colorante Küül Color System de 3oz. Fórmula profesional con pigmentos de alta durabilidad.",
-      status: ProductStatus.PUBLISHED,
-      shipping_profile_id: shippingProfile.id,
-      category_ids: [catByName("Color y Tintes")],
-      options: [{ title: "Tamaño", values: ["3oz"] }],
-      variants: [
-        {
-          title: "3oz",
-          sku: "KUUL-COLOR-3OZ",
-          options: { "Tamaño": "3oz" },
-          manage_inventory: true,
-          prices: [{ currency_code: "mxn", amount: 75 }],
-        },
-      ],
-      sales_channels: [{ id: tiendaOnline.id }],
-    },
-  ];
-
-  const newProducts = allProductDefs.filter(
-    (p) => !existingHandles.has(p.handle)
-  );
-
-  if (newProducts.length) {
-    try {
-      await createProductsWorkflow(container).run({
-        input: { products: newProducts },
-      });
-      logger.info(`Created ${newProducts.length} new products.`);
-    } catch (e: any) {
-      if (e.message?.includes("already exists")) {
-        logger.info("Some products already exist, skipping.");
-      } else {
-        throw e;
-      }
-    }
-  } else {
-    logger.info("All products already exist, skipping.");
-  }
-
-  // ── 11. INVENTORY LEVELS ──────────────────────────────────────────
-  logger.info("Setting inventory levels...");
-  const { data: inventoryItems } = await query.graph({
-    entity: "inventory_item",
-    fields: ["id"],
-  });
-
-  const { data: existingLevels } = await query.graph({
-    entity: "inventory_level",
-    fields: ["inventory_item_id"],
-    filters: { location_id: stockLocation.id },
-  });
-  const itemsWithLevels = new Set(
-    existingLevels.map((l: any) => l.inventory_item_id)
-  );
-
-  const newLevels: CreateInventoryLevelInput[] = inventoryItems
-    .filter((item) => !itemsWithLevels.has(item.id))
-    .map((item) => ({
-      location_id: stockLocation.id,
-      stocked_quantity: 500,
-      inventory_item_id: item.id,
-    }));
-
-  if (newLevels.length) {
-    await createInventoryLevelsWorkflow(container).run({
-      input: { inventory_levels: newLevels },
-    });
-    logger.info(`Set inventory for ${newLevels.length} new items.`);
-  } else {
-    logger.info("All inventory levels already set, skipping.");
-  }
-
-  // ── DONE ──────────────────────────────────────────────────────────
-  logger.info("✅ Distribuidora Sicarú seed data complete!");
-  logger.info("   Store: Distribuidora Sicarú");
-  logger.info("   Region: México (MXN)");
-  logger.info("   Tax: 16% IVA");
-  logger.info(`   Products configured: ${allProductDefs.length}`);
-  logger.info("   Categories: 6");
-  logger.info("   Shipping: Envío Cadereyta Mismo Día ($49 MXN)");
-  logger.info("   Sales Channel: Tienda Online");
+  logger.info("SICARÚ technical infrastructure initialized.");
+  logger.info("Products, prices and inventory require separate validated imports.");
 }
