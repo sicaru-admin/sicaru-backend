@@ -13,7 +13,6 @@ import {
   createProductCategoriesWorkflow,
   createRegionsWorkflow,
   createSalesChannelsWorkflow,
-  createShippingOptionsWorkflow,
   createShippingProfilesWorkflow,
   createStockLocationsWorkflow,
   createTaxRegionsWorkflow,
@@ -22,6 +21,7 @@ import {
   updateStoresStep,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows";
+import { assertTechnicalSeedAuthorized } from "../utils/seed-safety";
 
 const updateStoreCurrencies = createWorkflow(
   "update-store-currencies-sicaru",
@@ -49,6 +49,8 @@ const updateStoreCurrencies = createWorkflow(
 );
 
 export default async function seedSicaruData({ container }: ExecArgs) {
+  assertTechnicalSeedAuthorized(process.env);
+
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const link = container.resolve(ContainerRegistrationKeys.LINK);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
@@ -116,13 +118,10 @@ export default async function seedSicaruData({ container }: ExecArgs) {
   const existingRegions = await regionModuleService.listRegions({
     name: "México",
   });
-  let mexicoRegion;
-
   if (existingRegions.length) {
-    mexicoRegion = existingRegions[0];
     logger.info("Mexico region already exists, skipping.");
   } else {
-    const { result: regionResult } = await createRegionsWorkflow(container).run({
+    await createRegionsWorkflow(container).run({
       input: {
         regions: [
           {
@@ -134,7 +133,6 @@ export default async function seedSicaruData({ container }: ExecArgs) {
         ],
       },
     });
-    mexicoRegion = regionResult[0];
     logger.info("Mexico region created.");
   }
 
@@ -214,100 +212,22 @@ export default async function seedSicaruData({ container }: ExecArgs) {
     },
   });
 
-  // ── 7. SHIPPING PROFILE & FULFILLMENT ─────────────────────────────
-  logger.info("Setting up shipping and fulfillment...");
+  // ── 7. STRUCTURAL SHIPPING PROFILE ONLY ──────────────────────────
+  // Products may reference this profile; no service, rate or promise is offered.
+  logger.info("Setting up the structural shipping profile...");
   const shippingProfiles =
     await fulfillmentModuleService.listShippingProfiles({ type: "default" });
-  let shippingProfile = shippingProfiles.length ? shippingProfiles[0] : null;
-
-  if (!shippingProfile) {
-    const { result: shippingProfileResult } =
-      await createShippingProfilesWorkflow(container).run({
-        input: {
-          data: [
-            {
-              name: "Perfil de Envío Predeterminado",
-              type: "default",
-            },
-          ],
-        },
-      });
-    shippingProfile = shippingProfileResult[0];
-  }
-
-  const existingFulfillmentSets =
-    await fulfillmentModuleService.listFulfillmentSets({ name: "Envío Cadereyta" });
-  let fulfillmentSet;
-
-  if (existingFulfillmentSets.length) {
-    fulfillmentSet = existingFulfillmentSets[0];
-    logger.info("Fulfillment set already exists, skipping.");
-  } else {
-    fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-      name: "Envío Cadereyta",
-      type: "shipping",
-      service_zones: [
-        {
-          name: "México",
-          geo_zones: [
-            {
-              country_code: "mx",
-              type: "country",
-            },
-          ],
-        },
-      ],
-    });
-
-    await link.create({
-      [Modules.STOCK_LOCATION]: {
-        stock_location_id: stockLocation.id,
-      },
-      [Modules.FULFILLMENT]: {
-        fulfillment_set_id: fulfillmentSet.id,
-      },
-    });
-
-    // Shipping option: Envío Cadereyta Mismo Día — $49 MXN flat rate
-    await createShippingOptionsWorkflow(container).run({
-      input: [
-        {
-          name: "Envío Cadereyta Mismo Día",
-          price_type: "flat",
-          provider_id: "manual_manual",
-          service_zone_id: fulfillmentSet.service_zones[0].id,
-          shipping_profile_id: shippingProfile.id,
-          type: {
-            label: "Mismo Día",
-            description: "Envío el mismo día en Cadereyta y zona metropolitana. Gratis en pedidos mayores a $300 MXN.",
-            code: "mismo-dia",
+  if (!shippingProfiles.length) {
+    await createShippingProfilesWorkflow(container).run({
+      input: {
+        data: [
+          {
+            name: "Perfil de Envío Predeterminado",
+            type: "default",
           },
-          prices: [
-            {
-              currency_code: "mxn",
-              amount: 49,
-            },
-            {
-              region_id: mexicoRegion.id,
-              amount: 49,
-            },
-          ],
-          rules: [
-            {
-              attribute: "enabled_in_store",
-              value: "true",
-              operator: "eq",
-            },
-            {
-              attribute: "is_return",
-              value: "false",
-              operator: "eq",
-            },
-          ],
-        },
-      ],
+        ],
+      },
     });
-    logger.info("Shipping option created.");
   }
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({

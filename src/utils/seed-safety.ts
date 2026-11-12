@@ -1,3 +1,12 @@
+/** Exceptional technical bootstrap requires a temporary, explicit authorization. */
+export function assertTechnicalSeedAuthorized(env: NodeJS.ProcessEnv): void {
+  if (env.SICARU_ALLOW_TECHNICAL_SEED !== "true") {
+    throw new Error(
+      "Technical seed requires explicit temporary authorization: SICARU_ALLOW_TECHNICAL_SEED=true."
+    );
+  }
+}
+
 /** Demo fixtures are restricted to an explicitly named database on this machine. */
 export function assertLocalDemoSeed(env: NodeJS.ProcessEnv): void {
   if (

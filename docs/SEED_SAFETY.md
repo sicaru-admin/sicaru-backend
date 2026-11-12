@@ -1,8 +1,12 @@
 # SICARÚ seed safety
 
-`npm run seed:sicaru` initializes the existing technical store configuration. It no longer defines commercial products, product prices, inventory items or inventory levels. Catalog imports require their own validated inputs and authorization. Existing data is untouched by this code change.
+`npm run seed:sicaru` is an exceptional technical initializer, not a deployment or routine maintenance step. It requires explicit, temporary authorization for a separately approved administrative execution. Its first statement calls `assertTechnicalSeedAuthorized(process.env)`: if `SICARU_ALLOW_TECHNICAL_SEED` is absent or is not exactly `"true"`, it throws before resolving any service or performing any write. Rejection messages do not print environment values or credentials.
 
-The technical initializer still writes store settings, categories, fulfillment configuration and API-key links. It is an explicit administrative operation and is not part of normal startup. Its existing shipping configuration is retained in this focused change. Running it against an operational environment still requires authorization.
+The initializer creates no products, prices, inventory items, inventory levels, shipping rates or commercial shipping options. It cannot fill a missing level or assign a technical quantity to any variant. It does not define promotions, delivery deadlines or customer-facing logistics promises. Logistics policies require a separate process and explicit commercial authorization. Removing this code does not delete or alter existing shipping options or other live data.
+
+The remaining technical operations concern store settings, currencies, regions, tax configuration, stock location, its provider/channel links, the structural default shipping profile, categories and API-key links. A profile alone is not a purchasable shipping service: the initializer creates no fulfillment sets, service zones or shipping options. These technical writes still require review of the target environment and separate authorization; the temporary opt-in is a technical safeguard, not commercial permission.
+
+`SICARU_ALLOW_TECHNICAL_SEED` must **never persist in Production configuration**. Do not add it to Railway, a Production `.env`, CI, build or startup commands. Only a future expressly approved administrative execution may supply it temporarily to that process. This PR does not set the variable anywhere and does not run the initializer.
 
 `npm run seed:demo` is a separate local-only demonstration command. It requires all of the following conditions.
 
@@ -17,6 +21,6 @@ Railway supplies `RAILWAY_ENVIRONMENT_ID` and `RAILWAY_ENVIRONMENT_NAME`. The ID
 
 The inspected Production service uses branch `main`, build command `npm ci --include=dev && npm run build` and start command `npm run start`. Repository Railway configurations use `npm run start:production`. None of these commands invokes a seed. Recheck service overrides before a future release.
 
-Tests inspect the technical seed and exercise the demo boundary without loading a Medusa container or connecting to a database. Run `npm run test:unit`, `npx tsc --noEmit` and `npm run build` in an isolated checkout.
+Tests exercise the authorization guard, run the isolated real entrypoint with a service-resolution spy to prove rejection precedes writes, inspect prohibited capabilities and startup configuration, and exercise the local demo boundary. They do not load a Medusa container or connect to a database. In an isolated checkout run `npm run test:unit`, `npm run build`, then `npx tsc --noEmit` after the build generates Medusa types. None of these validation commands runs a seed.
 
-Rollback of this draft is closing the PR or reverting its commit. No database rollback is needed because the preparation does not execute either seed or change any live data. A future code rollback would restore the unsafe legacy initializer, so it must not be run.
+Rollback of this draft is closing the PR or reverting the code commits. No database rollback is needed because the preparation does not execute either seed or change live data. Reverting this correction would remove the explicit technical authorization guard and restore the previous initializer's commercial shipping capability; reverting the entire PR would also restore the legacy product/inventory risk. Neither rollback authorizes running a seed.
