@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "medusa build",
-    "seed": "medusa exec ./src/scripts/seed.ts",
+    "seed:demo": "medusa exec ./src/scripts/seed.ts",
     "seed:sicaru": "medusa exec ./src/scripts/seed-sicaru.ts",
     "meilisearch:sync": "medusa exec ./src/scripts/sync-meilisearch.ts",
     "start": "medusa db:migrate && medusa start --host 0.0.0.0 --port ${PORT:-9000}",
