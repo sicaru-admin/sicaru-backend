@@ -1,0 +1,90 @@
+{
+  "database": "LOCAL_sicaru_fantasy_isolated_v2",
+  "readOnly": true,
+  "results": [
+    {
+      "sku": "17133",
+      "product_id": "prod_01M7BJ338G6F03PKVEWW7CVZF4",
+      "variant_id": "variant_01M7BJ338RP3B941Y7WZZ97DRD",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610662669-17133.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "65c3729437597adf94e647502abb1af612340cfca516550de8a2625bb6a49146",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    },
+    {
+      "sku": "17141",
+      "product_id": "prod_01M7BJ33BM5763ZNGEZSQPQ82X",
+      "variant_id": "variant_01M7BJ33BVQ06KTS8Y512CAQS0",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610662770-17141.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "f7d2eff53c41959555200beb353a4674b0de0f3dce724596900beb760707a62c",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    },
+    {
+      "sku": "17136",
+      "product_id": "prod_01M7BJ33DZR1ZJY1HTRBAWCR2Y",
+      "variant_id": "variant_01M7BJ33EDBEJ6MP9CHBWR3A8J",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610662845-17136.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "754d06baa493b6f630a1f56e787ff0b912ab62a902770b0223a1b597c99ab598",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    },
+    {
+      "sku": "28101",
+      "product_id": "prod_01M7BJ33GDEE4BZVQ64E779AG2",
+      "variant_id": "variant_01M7BJ33GKPBTYDAABDNRK8MRB",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610662923-28101.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "846d9a8009e4bb6e103a7fd3a70e9a1f924c38fa825b7f5e3ed3312858613f45",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    },
+    {
+      "sku": "28102",
+      "product_id": "prod_01M7BJ33JM1FFE2QC917XBEK9B",
+      "variant_id": "variant_01M7BJ33JT0BGKRM1XNMFP8HP6",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610662993-28102.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "4c0977e3596a9fcd5a7764e3d8af7d34074bd7dd4924c51580b86d0ab696d668",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    },
+    {
+      "sku": "20132",
+      "product_id": "prod_01M7BJ33MS6JBFZ7QKMB6WFRWR",
+      "variant_id": "variant_01M7BJ33MZEHMWVGH8FW3YAS6V",
+      "status": "draft",
+      "localMediaUrl": "http://127.0.0.1:55440/static/1794610663064-20132.jpeg",
+      "httpStatus": 200,
+      "mime": "image/jpeg",
+      "sha256": "c30c5e15dbbe9eb61705d53e8e39e65f9c65c77020380316085c4c0461a55479",
+      "matchesOriginal": true,
+      "galleryMatchedVariant": true,
+      "authenticationUsed": false
+    }
+  ],
+  "unchangedQuantities": {
+    "stock_levels": "0",
+    "reservations": "0",
+    "prices": "0",
+    "channels": "0"
+  }
+}

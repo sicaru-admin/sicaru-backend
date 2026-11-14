@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src/lib/public-search.ts", "src/modules/meilisearch/service.ts", "src/subscribers/meilisearch-sync.ts", "src/loaders/meilisearch-sync.ts", "src/scripts/sync-meilisearch.ts", "src/api/store/catalog-search/route.ts"],
+  "exclude": ["node_modules", ".medusa"]
+}
