@@ -1,3 +1,5 @@
+import { formatOrderTotalMxn } from "../lib/order-invoice"
+import { blockReviewExternalEffects } from "../lib/review-external-effects"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { WHATSAPP_MODULE } from "../modules/whatsapp"
@@ -10,6 +12,7 @@ export default async function whatsappOrderPlaced({
   event,
   container,
 }: SubscriberArgs<{ id: string }>) {
+  if (blockReviewExternalEffects(process.env)) return
   const orderId = event.data.id
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
@@ -33,6 +36,9 @@ export default async function whatsappOrderPlaced({
         "id",
         "display_id",
         "customer_id",
+        "currency_code",
+        "total",
+        "shipping_methods.name",
         "shipping_address.*",
         "items.*",
         "payment_collections.*",
@@ -59,20 +65,16 @@ export default async function whatsappOrderPlaced({
     const firstName =
       (order.shipping_address as any)?.first_name || "Cliente"
 
-    // Calculate total from items
-    const totalCentavos = (order.items || []).reduce(
-      (sum: number, item: any) =>
-        sum + Number(item.unit_price) * item.quantity,
-      0
-    )
-    const totalFormatted = (totalCentavos / 100).toFixed(2)
+    // Medusa v2 totals are already MXN and include shipping, discounts and IVA.
+    const totalFormatted = formatOrderTotalMxn(order)
+    const shippingName = (order.shipping_methods || []).map((method: any) => method.name).filter(Boolean).join(", ") || "Paquetería"
 
     // Send order confirmation
     await whatsapp.sendTemplate(phone, TEMPLATE_ORDER_CONFIRMATION, "es_MX", [
       firstName,
       String(order.display_id || orderId),
       totalFormatted,
-      "Estándar", // Default shipping method label
+      shippingName,
     ])
 
     // Check if OXXO payment — send voucher details

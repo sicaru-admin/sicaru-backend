@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "revision": "parcel-only-awaiting-approved-quote-2026-10-21",
+  "terms": {
+    "accountConfirmed": false,
+    "serviceCode": null,
+    "originPostalCode": null,
+    "source": null,
+    "verifiedAt": null,
+    "validUntil": null,
+    "taxInclusive": null,
+    "allSurchargesConfirmed": false,
+    "volumetricMode": null,
+    "volumetricDivisor": null,
+    "roundingIncrementGrams": null,
+    "pricingMode": "negotiated_account"
+  },
+  "variants": {},
+  "packages": {},
+  "coverage": {},
+  "optionIds": {
+    "standard_1_2": null,
+    "standard_2_5": null,
+    "remote_1_2": null,
+    "remote_2_5": null
+  },
+  "commercialApproval": {
+    "status": "pending",
+    "source": null,
+    "verifiedAt": null,
+    "validUntil": null,
+    "provisional": true,
+    "carrierContractActivated": false,
+    "ratesMxn": null,
+    "unapprovedReferenceRatesMxn": {
+      "oneToTwoKg": 214,
+      "overTwoToFiveKg": 270,
+      "validatedExtendedAreaSurcharge": 118
+    },
+    "referenceOnly": true,
+    "measuredWeightsLoaded": false,
+    "packagingConfirmed": false,
+    "extendedAreaSource": null
+  }
+}

@@ -1,0 +1,4 @@
+items_sku_quantities,variant_ids,tare_g,external_length_cm,external_width_cm,external_height_cm,measured_gross_g,source,verifiedAt
+VOGLIA-ALL-IN-ONE-250ML:1,,,,,,,,
+VOGLIA-TINTE-1-90ML:1,,,,,,,,
+VOGLIA-TINTE-1-90ML:2|VOGLIA-ALL-IN-ONE-250ML:1,,,,,,,,

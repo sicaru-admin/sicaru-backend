@@ -1,0 +1,28 @@
+name: Backend verification
+
+on:
+  pull_request:
+  push:
+    branches: [codex/dhl-provisional]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: DHL policy and checkout guard checks
+        run: npm run test:dhl
+      - name: Compile Medusa without deploying
+        run: npm run build

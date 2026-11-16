@@ -61,6 +61,8 @@ export type InvoiceLineItem = {
   quantity: number
   /** Unit price in MXN (NOT centavos) */
   price: number
+  /** Match Medusa is_tax_inclusive explicitly; avoid adding IVA twice. */
+  tax_included: boolean
   product_key: string
   unit_key: string
   unit_name: string
