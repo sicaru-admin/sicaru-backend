@@ -25,6 +25,7 @@ test('Store API-only guardrails',async t=>{
   }
   delete process.env.DISABLE_MEILISEARCH_SYNC;
   const scripts=require('../package.json').scripts;assert(!scripts.start.includes('db:migrate'));assert(!scripts['start:production'].includes('db:migrate'));
+  assert(!require('node:fs').existsSync('.github/workflows/deploy-backend.yml'));
   const config=require('node:fs').readFileSync('medusa-config.ts','utf8');assert(!config.includes('resolve: "./src/modules/meilisearch"'));
  });
  await t.test('compose has no automatic public engine or dependency',async()=>{

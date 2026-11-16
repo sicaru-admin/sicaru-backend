@@ -1,7 +1,7 @@
 {
   "medusa": "2.13.1",
   "new_tap": {
-    "pass": 14,
+    "pass": 15,
     "fail": 0,
     "includes_parent": true
   },
@@ -16,5 +16,7 @@
   "real_cli_boot": "PASS",
   "production_writes": false,
   "migrations": false,
-  "meili_engine_started": false
+  "meili_engine_started": false,
+  "legacy_deploy_workflow_removed": true,
+  "container_read_access": "PENDING_NO_SSH_IDENTITY"
 }

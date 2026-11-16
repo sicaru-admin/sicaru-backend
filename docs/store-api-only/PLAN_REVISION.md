@@ -1,5 +1,7 @@
 # Store API-only · corrección mínima independiente
 
+Cierre vigente de liberación: [GO / NO GO](../liberacion-fase3-2026-11-16/GO_NO_GO.md). Sustituye el pendiente de elegir mecanismo: el PR elimina el workflow de deploy y conserva Railway Git como único disparador; la lectura interna del contenedor sigue pendiente.
+
 16 de noviembre de 2026, America/Monterrey. Base productiva y main verificados: `51a6d207f6d420828433898cdb41f34d1a699229`. Rama `codex/store-api-only-guardrails`. No incorpora los cambios de #7 ni modifica #30. **Preparado para revisión, sin autorización de despliegue o altas.**
 
 ## Cambios exactos

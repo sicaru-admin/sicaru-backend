@@ -1,0 +1,245 @@
+{
+  "date": "2026-11-16",
+  "productionWrites": false,
+  "services": [
+    {
+      "environment": "production",
+      "meili_host_configured": false,
+      "meili_origin": "fallback_localhost_7700",
+      "sync_disabled": false,
+      "database_environment_scoped_private": true,
+      "database_endpoint_fingerprint": "154994f4c151df504008114feca2120c80dd94a6aa333e9d3b584146dff705f9",
+      "schedules": []
+    },
+    {
+      "environment": "staging-voglia",
+      "meili_host_configured": false,
+      "meili_origin": "fallback_localhost_7700",
+      "sync_disabled": true,
+      "database_environment_scoped_private": true,
+      "database_endpoint_fingerprint": "154994f4c151df504008114feca2120c80dd94a6aa333e9d3b584146dff705f9",
+      "schedules": []
+    },
+    {
+      "environment": "preview-payments",
+      "meili_host_configured": false,
+      "meili_origin": "fallback_localhost_7700",
+      "sync_disabled": false,
+      "database_environment_scoped_private": true,
+      "database_endpoint_fingerprint": "154994f4c151df504008114feca2120c80dd94a6aa333e9d3b584146dff705f9",
+      "schedules": []
+    }
+  ],
+  "published_store_api": {
+    "status": 200,
+    "count": 12,
+    "returned": 12,
+    "all_published": true,
+    "ids_sha256": "60185a0856867f524eb3b0f0c02a31416a911b97432505df69e2a7227cf8f8a7",
+    "products": [
+      {
+        "id": "prod_01KVV3GD5Z3VZCKH48G0MDZAP0",
+        "handle": "nekane-tratamiento-hidra-intenso",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5Z4E86TFJNTJ806QZX",
+        "handle": "vitale-keratina-profesional",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5Z8Q1ND1PXMBD6PZ47",
+        "handle": "hidra-color-tinte-cremoso",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5Z9RXF3QAZWM7TJCDS",
+        "handle": "xiomara-gel-fijacion-fuerte",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5ZD8R40HF48DRBF37A",
+        "handle": "voglia-tinte-permanente-90ml",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5ZFG0NT90YWFXRPZFK",
+        "handle": "kuul-cure-me-reconstructor-1l",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVV3GD5ZR40Q6YWBS7QHJ48Z",
+        "handle": "montis-shampoo-extracto-natural",
+        "status": "published"
+      },
+      {
+        "id": "prod_01KVXJG9PX1NN0MAYZ283R9H7N",
+        "handle": "voglia-all-in-one-keratin-250ml",
+        "status": "published"
+      },
+      {
+        "id": "prod_01M6Y04S8P1TSHNGNW6T5FJS80",
+        "handle": "kuul-color-system-90ml",
+        "status": "published"
+      },
+      {
+        "id": "prod_01M79C6MFY2YPX504ZMDW9HJ0A",
+        "handle": "xiomara-shampoo-platinum-250ml",
+        "status": "published"
+      },
+      {
+        "id": "prod_01M79C7BHA8D7GCZG4DTBM1Q68",
+        "handle": "xiomara-shampoo-platinum-libre-sulfatos-250ml",
+        "status": "published"
+      },
+      {
+        "id": "prod_01M79C817D78WYM8K6D9W32NH1",
+        "handle": "nekane-morazul-shampoo-matizador-300g",
+        "status": "published"
+      }
+    ]
+  },
+  "public_fiches": [
+    {
+      "handle": "nekane-tratamiento-hidra-intenso",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "vitale-keratina-profesional",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "hidra-color-tinte-cremoso",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "HIT"
+    },
+    {
+      "handle": "xiomara-gel-fijacion-fuerte",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "voglia-tinte-permanente-90ml",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "kuul-cure-me-reconstructor-1l",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "montis-shampoo-extracto-natural",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "voglia-all-in-one-keratin-250ml",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "kuul-color-system-90ml",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "xiomara-shampoo-platinum-250ml",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "xiomara-shampoo-platinum-libre-sulfatos-250ml",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    },
+    {
+      "handle": "nekane-morazul-shampoo-matizador-300g",
+      "http": 200,
+      "heading_matches_title": true,
+      "noindex": false,
+      "cache": "STALE"
+    }
+  ],
+  "meili_path_checks": [
+    {
+      "host": "sicaru-backend-production-8324.up.railway.app",
+      "path": "/version",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-production-8324.up.railway.app",
+      "path": "/indexes",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-production-8324.up.railway.app",
+      "path": "/indexes/products/documents?limit=0",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-staging-voglia.up.railway.app",
+      "path": "/version",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-staging-voglia.up.railway.app",
+      "path": "/indexes",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-staging-voglia.up.railway.app",
+      "path": "/indexes/products/documents?limit=0",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-preview-payments.up.railway.app",
+      "path": "/version",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-preview-payments.up.railway.app",
+      "path": "/indexes",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "host": "sicaru-backend-preview-payments.up.railway.app",
+      "path": "/indexes/products/documents?limit=0",
+      "status": 404,
+      "type": "text/html; charset=utf-8"
+    }
+  ],
+  "semantic_check_note": "Ignore Next serialized not-found templates; match visible H1 to Store API title and check robots metadata."
+}
