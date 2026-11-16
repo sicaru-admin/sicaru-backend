@@ -1,0 +1,15 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> sicaru-backend@0.0.1 build
+> medusa build
+
+info:    redisUrl not found. A fake redis instance will be used.
+info:    Generating types...
+info:    No link to load from /private/tmp/sicaru-search-review/node_modules/@medusajs/draft-order/.medusa/server/src/links. skipped.
+info:    Types generated successfully
+info:    Starting build...
+info:    Compiling backend source...
+info:    Removing existing ".medusa/server" folder
+info:    Compiling frontend source...
+info:    Backend build completed successfully (3.21s)
+info:    Frontend build completed successfully (11.34s)

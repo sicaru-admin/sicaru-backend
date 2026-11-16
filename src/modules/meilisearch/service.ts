@@ -46,7 +46,15 @@ const INDEX_NAME = "products";
 export default class MeiliSearchService {
   private clientPromise: Promise<MeiliSearchClient>;
 
-  constructor(_: Record<string, unknown>, options: MeiliSearchModuleOptions) {
+  readonly __hooks: { onApplicationStart: () => Promise<void> };
+
+  constructor(dependencies: Record<string, any>, options: MeiliSearchModuleOptions) {
+    let started = false;
+    this.__hooks = { onApplicationStart: async () => {
+      if (started) return;
+      started = true;
+      await dependencies.meilisearchStartupReconcile?.();
+    } };
     this.clientPromise = import("meilisearch").then(
       ({ MeiliSearch }) =>
         new MeiliSearch({

@@ -1,0 +1,56 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "cache_control": "no-store, max-age=0",
+    "x_vercel_cache": "HIT",
+    "age": "340",
+    "bytes": 179891,
+    "worker_unregister": null
+  },
+  {
+    "path": "/productos",
+    "status": 200,
+    "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x_vercel_cache": "MISS",
+    "age": "0",
+    "bytes": 149718,
+    "worker_unregister": null
+  },
+  {
+    "path": "/productos?q=Fantasy",
+    "status": 200,
+    "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x_vercel_cache": "MISS",
+    "age": "0",
+    "bytes": 122862,
+    "worker_unregister": null
+  },
+  {
+    "path": "/productos/hidra-color-tinte-cremoso",
+    "status": 200,
+    "cache_control": "no-store, max-age=0",
+    "x_vercel_cache": "STALE",
+    "age": "340",
+    "bytes": 65974,
+    "worker_unregister": null
+  },
+  {
+    "path": "/sitemap.xml",
+    "status": 200,
+    "cache_control": "public, max-age=0, must-revalidate",
+    "x_vercel_cache": "MISS",
+    "age": "0",
+    "bytes": 4675,
+    "worker_unregister": null
+  },
+  {
+    "path": "/sw.js",
+    "status": 200,
+    "cache_control": "no-store, no-cache, must-revalidate",
+    "x_vercel_cache": "MISS",
+    "age": "0",
+    "bytes": 521,
+    "worker_unregister": true
+  }
+]
