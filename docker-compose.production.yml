@@ -1,5 +1,5 @@
 # Reference architecture for local production-like testing.
-# In production: PostgreSQL → Supabase, Redis → Upstash, MeiliSearch → Railway service.
+# Legacy local reference; actual Railway topology must be inspected separately.
 
 services:
   medusa:
@@ -13,8 +13,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      meilisearch:
-        condition: service_started
     environment:
       - DATABASE_URL=postgresql://medusa:medusa@postgres:5432/medusa
       - REDIS_URL=redis://redis:6379
@@ -23,8 +21,6 @@ services:
       - AUTH_CORS=http://localhost:9000,http://localhost:3000
       - JWT_SECRET=dev-jwt-secret-change-in-production
       - COOKIE_SECRET=dev-cookie-secret-change-in-production
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY:-masterkey}
       - MEDUSA_BACKEND_URL=http://localhost:9000
       - STORE_URL=http://localhost:3000
 
@@ -50,11 +46,13 @@ services:
       - "6379:6379"
 
   meilisearch:
+    profiles: ["legacy-search-manual-only"]
     image: getmeili/meilisearch:v1.6
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     environment:
-      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY:-masterkey}
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY:-}
     volumes:
       - meilisearch_data:/meili_data
 

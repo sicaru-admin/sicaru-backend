@@ -1,10 +1,12 @@
 services:
   meilisearch:
+    profiles: ["legacy-search-manual-only"]
     image: getmeili/meilisearch:v1.6
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     environment:
-      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY}
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY:-}
     volumes:
       - meilisearch_data:/meili_data
 

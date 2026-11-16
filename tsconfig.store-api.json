@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src/api/storefront-config/route.ts", "src/subscribers/meilisearch-sync.ts", "src/subscribers/catalog-cache.ts", "src/loaders/meilisearch-sync.ts", "src/scripts/sync-meilisearch.ts", "src/modules/meilisearch/**/*.ts", "src/lib/invalidate-storefront.ts"],
+  "exclude": ["node_modules", ".medusa"]
+}

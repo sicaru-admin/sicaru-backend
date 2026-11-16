@@ -33,13 +33,7 @@ module.exports = defineConfig({
         providers: paymentProviders,
       },
     },
-    {
-      resolve: "./src/modules/meilisearch",
-      options: {
-        host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
-        apiKey: process.env.MEILISEARCH_API_KEY || "",
-      },
-    },
+    // Store API-only mode: no search module, network client or startup index work.
     {
       resolve: "./src/modules/facturapi",
       options: {

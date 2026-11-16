@@ -1,0 +1,20 @@
+{
+  "medusa": "2.13.1",
+  "new_tap": {
+    "pass": 14,
+    "fail": 0,
+    "includes_parent": true
+  },
+  "existing_unit": {
+    "pass": 70,
+    "fail": 0
+  },
+  "full_typescript": "PASS",
+  "scoped_typescript": "PASS",
+  "backend_build": "PASS",
+  "admin_build": "PASS",
+  "real_cli_boot": "PASS",
+  "production_writes": false,
+  "migrations": false,
+  "meili_engine_started": false
+}
