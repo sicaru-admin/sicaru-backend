@@ -1,0 +1,34 @@
+{
+  "date_local": "2026-11-15",
+  "environment": "EXISTING_LOCAL_ISOLATED_ONLY",
+  "medusa": "2.13.1",
+  "frontend_deployment": "dpl_HrRagHXABHoHSP1oaSS7BTs141P3",
+  "frontend_sha": "d8f030ff4e1e9dcdbbd0e08c015884694c5bc693",
+  "backend_base": "51a6d207f6d420828433898cdb41f34d1a699229",
+  "new_tap_tests": {
+    "pass": 14,
+    "fail": 0,
+    "includes_parent_tests": true
+  },
+  "previous_regression_tap_tests": {
+    "pass": 16,
+    "fail": 0,
+    "rerun_reason": "module lifecycle registration and disabled endpoint changed"
+  },
+  "typecheck_scoped": "PASS",
+  "build_backend": "PASS",
+  "build_admin": "PASS",
+  "git_diff_check": "PASS",
+  "migrations_executed": false,
+  "products_created": false,
+  "production_writes": false,
+  "runtime_fixture": "standard Medusa modules plus corrected search module; excludes commercial providers",
+  "file_sha256": {
+    "src/modules/meilisearch/index.ts": "dcb174682ca8dd54074b65b1dfc349cee65a0697bc210b6cb897c5aefce33ef2",
+    "src/modules/meilisearch/loaders/startup.ts": "5122e2a88da01520c4ed285ed278f6bfd0c685eb77f6bbec8003573555f03b20",
+    "src/modules/meilisearch/service.ts": "a26375b3f147956c2bd54eb324a4ca8b32946a8357f69cde421b904299a8ba56",
+    "src/api/store/catalog-search/route.ts": "c8b9848e65c6b435f6548a923584ca0934b9a6339c673885d53f80d87b9d8c12",
+    "tests/startup-guards.test.cjs": "7156212cca89998bbb2dbd6f3010528b5bc072278ca93b39160fce550359e52c",
+    "tests/startup-real.test.cjs": "ca2fcc519abf0843db616b7ba8d2568b3bb781f22f39b6fb900f69308ddb3ea0"
+  }
+}

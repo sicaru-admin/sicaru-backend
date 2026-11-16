@@ -1,0 +1,31 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> sicaru-backend@0.0.1 test:search:startup
+> node --test tests/startup-guards.test.cjs tests/startup-real.test.cjs
+
+▶ startup registration and opt-in guards
+  ✔ db:migrate never reconciles (0.451916ms)
+  ✔ db:migrate:scripts never reconciles (0.0725ms)
+  ✔ exec never reconciles (0.066041ms)
+  ✔ unknown never reconciles (0.062958ms)
+  ✔ service application hook invokes registered callback once (1.704792ms)
+  ✔ disabled endpoint returns no-store 503 without resolving any service (8.090875ms)
+✔ startup registration and opt-in guards (11.971ms)
+▶ actual Medusa start/restart with optional search and existing isolated schema
+  ▶ disabled: real boot serves health and Store API boundary with no engine
+    ✔ existing drafts excluded by list, query, handle, ID, category and override (212.563292ms)
+  ✔ disabled: real boot serves health and Store API boundary with no engine (2494.583833ms)
+  ✔ enabled opt-in boot (1853.156292ms)
+  ✔ enabled opt-in restart (1857.80075ms)
+  ✔ no opt-in: real boot leaves index untouched (2156.942375ms)
+  ✔ no products, prices, levels, reservations or channel links created (30.302458ms)
+LOCAL_ONLY_EVIDENCE /var/folders/tb/db4r9bn56_b9vr04tgdfd9mc0000gn/T/sicaru-real-start-ojTql7
+✔ actual Medusa start/restart with optional search and existing isolated schema (8882.802959ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18979.092292
