@@ -8,7 +8,31 @@ import {
   TEMPLATE_CART_REMINDER_3,
 } from "../modules/whatsapp/types"
 
-const STORE_URL = process.env.STORE_URL || "https://sicaru.com"
+function getStoreUrl(logger: { warn: (...args: any[]) => void }) {
+  const storeUrl = process.env.STORE_URL?.trim()
+
+  if (!storeUrl) {
+    logger.warn(
+      "[Cart Recovery] STORE_URL is not configured; skipping recovery messages"
+    )
+    return null
+  }
+
+  try {
+    const parsed = new URL(storeUrl)
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error("unsupported protocol")
+    }
+
+    return parsed.toString().replace(/\/$/, "")
+  } catch {
+    logger.warn(
+      "[Cart Recovery] STORE_URL is invalid; skipping recovery messages"
+    )
+    return null
+  }
+}
 
 // Timing thresholds in milliseconds
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -24,6 +48,7 @@ export default async function cartAbandonmentRecovery(
 ) {
   const logger = container.resolve("logger") as {
     info: (...args: any[]) => void
+    warn: (...args: any[]) => void
     error: (...args: any[]) => void
   }
   const abandonedCart = container.resolve(ABANDONED_CART_MODULE) as any
@@ -37,6 +62,12 @@ export default async function cartAbandonmentRecovery(
   }
 
   try {
+    const storeUrl = getStoreUrl(logger)
+
+    if (!storeUrl) {
+      return
+    }
+
     // Fetch carts eligible for messaging
     const carts = await abandonedCart.listAbandonedCarts(
       {
@@ -53,7 +84,7 @@ export default async function cartAbandonmentRecovery(
       if (!cart.phone) continue
 
       const elapsed = now - new Date(cart.last_cart_activity).getTime()
-      const recoveryUrl = `${STORE_URL}/carrito/recuperar/${cart.recovery_token}`
+      const recoveryUrl = `${storeUrl}/carrito/recuperar/${cart.recovery_token}`
       const firstName = cart.customer_id ? "Cliente" : "Cliente"
       const productList = abandonedCart.formatProductList(cart.items_snapshot)
 
@@ -75,7 +106,7 @@ export default async function cartAbandonmentRecovery(
 
           messagesSent++
           logger.info(
-            `[Cart Recovery] Message 1 sent to ${cart.phone} for cart ${cart.cart_id}`
+            `[Cart Recovery] Message 1 sent for cart ${cart.cart_id}`
           )
         }
 
@@ -98,7 +129,7 @@ export default async function cartAbandonmentRecovery(
 
           messagesSent++
           logger.info(
-            `[Cart Recovery] Message 2 sent to ${cart.phone} for cart ${cart.cart_id}`
+            `[Cart Recovery] Message 2 sent for cart ${cart.cart_id}`
           )
         }
 
@@ -161,7 +192,7 @@ export default async function cartAbandonmentRecovery(
 
           messagesSent++
           logger.info(
-            `[Cart Recovery] Message 3 sent to ${cart.phone} for cart ${cart.cart_id}${recoveryCode ? ` with code ${recoveryCode}` : ""}`
+            `[Cart Recovery] Message 3 sent for cart ${cart.cart_id}${recoveryCode ? " with recovery code" : ""}`
           )
         }
 

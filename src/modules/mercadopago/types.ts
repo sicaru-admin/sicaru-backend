@@ -14,12 +14,16 @@ export type MercadoPagoPaymentMethod =
 export type MercadoPagoPaymentData = {
   /** Mercado Pago payment ID */
   id: string | number
+  /** Medusa payment session ID mirrored to Mercado Pago for webhook correlation */
+  external_reference?: string
   /** Payment method used */
   payment_method_id?: string
   /** Payment method type (credit_card, debit_card, ticket, bank_transfer) */
   payment_type_id?: string
   /** Current MP status */
   mp_status?: string
+  /** Mercado Pago status detail, for example accredited or cc_rejected_* */
+  status_detail?: string
   /** OXXO/SPEI: URL for voucher or transfer instructions */
   voucher_url?: string
   /** OXXO: barcode data */
@@ -32,6 +36,8 @@ export type MercadoPagoPaymentData = {
   transaction_amount?: number
   /** Currency code */
   currency_id?: string
+  /** Whether Mercado Pago reports the payment as captured */
+  captured?: boolean
   /** Medusa session ID stored in MP metadata */
   session_id?: string
 }
@@ -45,6 +51,7 @@ export type MercadoPagoStatus =
   | "in_mediation"
   | "rejected"
   | "cancelled"
+  | "expired"
   | "refunded"
   | "charged_back"
 
