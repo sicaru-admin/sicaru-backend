@@ -19,6 +19,8 @@ jobs:
       - run: npm ci
       - name: Unit tests without a Medusa container or live database
         run: npm run test:unit
+      - name: Store API-only regression guards
+        run: npm run test:store-api
       - name: Build backend and Admin with generated Medusa types
         env:
           MEDUSA_DISABLE_TELEMETRY: "true"

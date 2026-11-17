@@ -451,7 +451,7 @@ async function applyCatalog(container, args, plan) {
 
   if (creates.length) await createInventoryLevelsWorkflow(container).run({ input: { inventory_levels: creates } });
   if (updates.length) await updateInventoryLevelsWorkflow(container).run({ input: { updates } });
-  console.log("Meilisearch sync omitido por el importador; ejecuta npm run meilisearch:sync por separado cuando el servicio de staging este disponible.");
+  console.log("Meilisearch deshabilitado: este importador no debe ejecutar sincronizacion de busqueda.");
 }
 
 async function run({ container, args: cliArgs }: ExecArgs) {

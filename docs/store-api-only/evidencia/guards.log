@@ -1,0 +1,29 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> sicaru-backend@0.0.1 test:store-api
+> node --test tests/store-api-only.test.cjs tests/recovery-guard.test.cjs
+
+✔ recovery patch applies and fails closed without touching catalogue or index (34.413083ms)
+▶ Store API-only guardrails
+  ✔ legacy flags and entrypoints cannot reactivate Meili (1.68125ms)
+  ✔ compose has no automatic public engine or dependency (11.888792ms)
+  ✔ counter excludes draft, wrong channel, unlinked product and duplicate links (0.3825ms)
+  ✔ counter traverses multiple link batches (0.663375ms)
+  ✔ missing key (0.086334ms)
+  ✔ invalid key (0.066416ms)
+  ✔ revoked (0.063083ms)
+  ✔ no channels (0.067708ms)
+  ✔ channel override (0.086209ms)
+  ✔ array injection (0.0885ms)
+  ✔ channel selection narrows scope (0.093166ms)
+  ✔ counter backend failure has no stale or global-count fallback (0.109584ms)
+  ✔ cache subscriber is inert until configured; configured requests signed and bounded (0.580459ms)
+✔ Store API-only guardrails (17.117166ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1056.211208

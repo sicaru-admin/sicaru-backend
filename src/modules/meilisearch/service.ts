@@ -44,13 +44,7 @@ export default class MeiliSearchService {
   private clientPromise: Promise<MeiliSearchClient>;
 
   constructor(_: Record<string, unknown>, options: MeiliSearchModuleOptions) {
-    this.clientPromise = import("meilisearch").then(
-      ({ MeiliSearch }) =>
-        new MeiliSearch({
-          host: options.host,
-          apiKey: options.apiKey,
-        })
-    );
+    throw new Error("Meilisearch is disabled in Store API-only mode.");
   }
 
   private async getClient(): Promise<MeiliSearchClient> {

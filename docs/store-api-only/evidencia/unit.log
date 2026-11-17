@@ -1,0 +1,13 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> sicaru-backend@0.0.1 test:unit
+> TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit
+
+PASS src/scripts/__tests__/seed-safety.unit.spec.ts
+PASS src/modules/mercadopago/__tests__/utils.unit.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       70 passed, 70 total
+Snapshots:   0 total
+Time:        1.226 s
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-16",
+  "projects": 1,
+  "environments": 3,
+  "meiliServices": 0,
+  "changesExecuted": false,
+  "backendServices": [
+    {
+      "environment": "preview-payments",
+      "branch": "codex/dhl-provisional",
+      "deployment": "d4a10180-30ce-45ac-af72-75fdc2ca768a",
+      "domains": {
+        "serviceDomains": [
+          {
+            "id": "51f79573-f389-47e1-978a-82cdcdd9a649",
+            "domain": "sicaru-backend-preview-payments.up.railway.app",
+            "targetPort": null
+          }
+        ],
+        "customDomains": []
+      },
+      "tcpProxies": [],
+      "meiliVariableNames": [],
+      "startCommand": "npm run start:production"
+    },
+    {
+      "environment": "staging-voglia",
+      "branch": "codex/staging-media-storage-qa",
+      "deployment": "6e801e11-b9a2-474a-a083-a6c9018738d1",
+      "domains": {
+        "serviceDomains": [
+          {
+            "id": "aa4913ef-764a-477f-9b3d-bcdd12d19623",
+            "domain": "sicaru-backend-staging-voglia.up.railway.app",
+            "targetPort": null
+          }
+        ],
+        "customDomains": []
+      },
+      "tcpProxies": [],
+      "meiliVariableNames": [
+        "DISABLE_MEILISEARCH_SYNC"
+      ],
+      "startCommand": "npm run start"
+    },
+    {
+      "environment": "production",
+      "branch": "main",
+      "deployment": "238078bc-0510-44d1-b8eb-b497c63f67e0",
+      "domains": {
+        "serviceDomains": [
+          {
+            "id": "839b32be-ba5d-48ab-a442-52312a614be7",
+            "domain": "sicaru-backend-production-8324.up.railway.app",
+            "targetPort": null
+          }
+        ],
+        "customDomains": []
+      },
+      "tcpProxies": [],
+      "meiliVariableNames": [],
+      "startCommand": "npm run start"
+    }
+  ]
+}
