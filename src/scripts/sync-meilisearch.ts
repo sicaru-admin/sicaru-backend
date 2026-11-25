@@ -48,6 +48,10 @@ function buildDocument(product: Record<string, any>): ProductDocument {
 }
 
 export default async function syncMeiliSearch({ container }: ExecArgs) {
+  if (process.env.DISABLE_MEILISEARCH_SYNC === "true") {
+    throw new Error("[MeiliSearch] Manual sync blocked: synchronization is disabled.");
+  }
+
   const meiliSearch: MeiliSearchService = container.resolve(MEILISEARCH_MODULE);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
@@ -75,6 +79,7 @@ export default async function syncMeiliSearch({ container }: ExecArgs) {
         "created_at",
         "updated_at",
       ],
+      filters: { status: "published" },
       pagination: {
         take: BATCH_SIZE,
         skip: offset,
