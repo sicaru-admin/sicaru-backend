@@ -63,3 +63,27 @@ El frontend `sicaru-admin/sicaru`, **PR #57**, mantiene una página de QA `/qa/k
 ## Decisión pendiente
 
 **No se puede ejecutar aún la corrección en Medusa:** sigue pendiente recuperar acceso administrativo y verificar el EAN de la unidad física. Este PR es exclusivamente documental. La aprobación visual de la foto no es autorización automática para modificar producto/variante, precio, SKU, inventario o producción.
+
+
+## Diagnóstico de acceso Admin (consulta Railway, 26/11/2026)
+
+**Hechos comprobados, solo lectura:**
+
+- Proyecto Railway `passionate-charisma`, entorno `production`, servicio `sicaru-backend` desplegado desde `sicaru-admin/sicaru-backend@main`.
+- Último despliegue de backend visible en Railway: **SUCCESS**, 12/11/2026. No hay cambios de infraestructura en espera.
+- Dominio del servicio: `https://sicaru-backend-production-8324.up.railway.app`.
+- El servicio define los nombres de variables `ENABLE_ADMIN`, `DISABLE_ADMIN`, `ADMIN_CORS`, `AUTH_CORS`, `COOKIE_SECRET` y `JWT_SECRET`. **No se han leído ni impreso valores secretos**.
+- El código `medusa-config.ts` define `disableAdmin = DISABLE_ADMIN === "true" || (NODE_ENV === "production" && ENABLE_ADMIN !== "true")`. La existencia de nombres de variables NO prueba su valor efectivo.
+- No figuran nombres de variables SMTP, RESEND, SENDGRID ni MAILER entre los nombres listados en Railway. `medusa-config.ts` no registra módulo de notificaciones de correo. **Esto no confirma por sí solo que una ruta de recuperación de contraseña sea imposible**, pero obliga a demostrar entrega antes de utilizarla.
+- No se observaron líneas concluyentes de autenticación fallida en los registros de despliegue disponibles. Un despliegue SUCCESS no demuestra que el inicio de sesión sea correcto.
+
+**Ruta segura de diagnóstico SIN restablecer contraseña aún:**
+1. Propietaria comprueba desde navegador su acceso a Admin con correo exacto de la cuenta existente, evitando autofill de cuentas antiguas, sin comunicar contraseña a Codex/ChatGPT.
+2. Si falla, revisar código HTTP de la solicitud de autenticación y si es 400/401 (credenciales), 403 (permiso/CORS), 429 (rate limit), o 5xx (servidor), sin registrar cookies o tokens. No usar reintentos masivos.
+3. Comprobar de forma autorizada la presencia del usuario exacto en el directorio de identidades del Admin, **solo lectura** y minimizando datos personales; distinguir usuario inexistente, cuenta sin permisos y contraseña inválida.
+4. Verificar que el proveedor de correo está disponible antes de ofrecer "olvidé mi contraseña"; no exponer tokens de recuperación en logs, PR ni conversación.
+5. Si no hay recuperación disponible, preparar mediante Codex un plan de recuperación usando las capacidades oficiales de Medusa 2.13.1 sobre la cuenta existente, con respaldo, autorización explícita y rollback. **No ejecutar comandos de creación de usuarios ni mutaciones en producción durante el diagnóstico.**
+
+**Prohibiciones:** jamás pedir ni copiar credenciales, JWT/COOKIE secrets o contraseñas en chat/PR; no desbloquear Admin alterando `ENABLE_ADMIN`, `DISABLE_ADMIN`, CORS o secretos por ensayo y error; no modificar directamente Postgres ni desplegar scripts de cambio de contraseña sin aprobación.
+
+**Conclusión:** backend operativo según Railway, **acceso Admin no restablecido ni confirmado**; la corrección del producto sigue bloqueada.
